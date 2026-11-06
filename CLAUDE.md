@@ -86,7 +86,7 @@ ear-trainer/
 - Internally, every note is a **MIDI number** (C4 = 60, A4 = 69).
 - Frequency in 12-TET: `f(m) = 440 · 2^((m − 69) / 12)`.
 - Settings choose the **note set**:
-  - Range: lowest and highest MIDI note. The default is **C4–B4** (60–71).
+  - Range: lowest and highest MIDI note. The default is **C4–C6** (60–84), two octaves.
   - Notes: **white keys only** (default for a beginner) or **all 12 chromatic**.
   - Octave matching: **exact** (default). Optionally, **pitch class only**, where the answer matches if `(guess − target) mod 12 = 0`. This matters only when the range spans more than one octave.
 

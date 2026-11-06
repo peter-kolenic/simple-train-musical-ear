@@ -66,8 +66,19 @@ test('spansOctaves', () => {
   assert.equal(spansOctaves(59, 60), true);
 });
 
-test('buildNoteSet: default is white keys C4–B4', () => {
-  assert.deepEqual(buildNoteSet(), [60, 62, 64, 65, 67, 69, 71]);
+test('buildNoteSet: default is white keys C4–C6', () => {
+  assert.deepEqual(buildNoteSet(), [
+    60, 62, 64, 65, 67, 69, 71,
+    72, 74, 76, 77, 79, 81, 83,
+    84,
+  ]);
+});
+
+test('buildNoteSet: default range with black keys has 25 notes', () => {
+  const set = buildNoteSet({ whiteOnly: false });
+  assert.equal(set.length, 25);
+  assert.equal(set[0], 60);
+  assert.equal(set[24], 84);
 });
 
 test('buildNoteSet: chromatic', () => {

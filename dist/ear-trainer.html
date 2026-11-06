@@ -72,7 +72,7 @@ const noteName = (midi, { style = 'central', showOctave = false } = {}) => {
 const spansOctaves = (low, high) => octaveOf(low) !== octaveOf(high);
 
 // Ascending list of MIDI numbers in [low, high].
-const buildNoteSet = ({ low = 60, high = 71, whiteOnly = true } = {}) => {
+const buildNoteSet = ({ low = 60, high = 84, whiteOnly = true } = {}) => {
   if (!Number.isInteger(low) || !Number.isInteger(high) || low > high) {
     throw new Error(`bad range: ${low}..${high}`);
   }
@@ -90,12 +90,22 @@ const matches = (target, guess, mode = 'exact') => {
 // ---- ui.js ----
 // DOM wiring. Phase 1: placeholder that proves the bundled script runs.
 
+const LOW = 60;
+const HIGH = 84;
+
+const names = (whiteOnly) => {
+  const showOctave = spansOctaves(LOW, HIGH);
+  return buildNoteSet({ low: LOW, high: HIGH, whiteOnly })
+    .map((m) => noteName(m, { style: 'central', showOctave }))
+    .join(' ');
+};
+
 const renderPlaceholder = () => {
   const el = document.getElementById('app');
-  const set = buildNoteSet();
-  const central = set.map((m) => noteName(m, { style: 'central' })).join(' ');
-  const intl = set.map((m) => noteName(m, { style: 'international' })).join(' ');
-  el.textContent = `Default note set — Central European: ${central} · International: ${intl}`;
+  el.textContent = `Default note set (white keys): ${names(true)}`;
+  const chromatic = document.createElement('p');
+  chromatic.textContent = `With black keys: ${names(false)}`;
+  el.after(chromatic);
 };
 
 renderPlaceholder();

@@ -34,7 +34,7 @@ export const noteName = (midi, { style = 'central', showOctave = false } = {}) =
 export const spansOctaves = (low, high) => octaveOf(low) !== octaveOf(high);
 
 // Ascending list of MIDI numbers in [low, high].
-export const buildNoteSet = ({ low = 60, high = 71, whiteOnly = true } = {}) => {
+export const buildNoteSet = ({ low = 60, high = 84, whiteOnly = true } = {}) => {
   if (!Number.isInteger(low) || !Number.isInteger(high) || low > high) {
     throw new Error(`bad range: ${low}..${high}`);
   }

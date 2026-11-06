@@ -26,8 +26,8 @@ Each phase ends with an **Acceptance** list. Claude Code checks the automatable 
 | Phase | State |
 |---|---|
 | 1 — Scaffold, music math, build | **Done.** 20 tests pass. Build output is 3.4 KB. Checked in Chrome on macOS: the placeholder renders, no console errors. |
-| 2 — Game logic | **Next.** Not started |
-| 3 — Audio engine | Not started |
+| 2 — Game logic | **Done.** 44 tests pass (24 new in `game.test.js`). |
+| 3 — Audio engine | **Next.** Not started |
 | 4 — Playable UI | Not started |
 | 5 — Settings, stats, polish, delivery | Not started |
 | 6 — MIDI (optional) | Not started |
@@ -39,6 +39,11 @@ Each phase ends with an **Acceptance** list. Claude Code checks the automatable 
 - **`ui.js` (Phase 1):** a placeholder that shows the default note set in both naming styles. This proves that the bundled script runs. Phase 4 replaces it.
 - **Default range:** C4–C6 (60–84), white keys only. Central European names (H, B = B♭). Black keys stay available through `whiteOnly: false` (setting in Phase 5).
 - **Browser check by Claude:** the Claude in Chrome extension cannot open `file://` URLs. Serve `dist/` on localhost for the check: `cd dist && python3 -m http.server 8765 --bind 127.0.0.1`, then open `http://127.0.0.1:8765/ear-trainer.html`. The user still opens the file directly on Windows.
+- **`game.js` API:** each action is `(state, arg?) → {state, effects}` and does not change its input. Illegal transitions throw. A guess outside the note set throws. `explore()` is allowed only in `ANSWERED`. The UI calls `guess()` in `AWAITING_GUESS` and `explore()` after the answer.
+- **Effects:** `{type:'play', midi, delay}` (delay in seconds) and `{type:'show', result}`. The wrong-answer target plays at `WRONG_TARGET_DELAY` (0.8 s). The reference tone plays at 0 and the target at `REFERENCE_DELAY` (1 s). `replayTarget()` also plays the reference tone when it is on.
+- **Config in state:** `createGame({noteSet, octaveMode, playTargetOnWrong, referenceNote, rng, stats})`. Change it with `configure(state, patch)`. Defaults: `exact`, `playTargetOnWrong: true`, `referenceNote: null`.
+- **Stats:** plain JSON data, `{notes: {[t]: {attempts, correct}}, confusions: {[t]: {[g]: n}}}`. `game.js` does not touch `localStorage`. The UI loads and saves `state.stats` (Phase 4/5). Query helpers: `weakestNotes`, `topConfusions`.
+- **RNG:** `seededRng(seed)` (mulberry32) is exported for tests.
 - **Node:** Node 26 (Active LTS) is managed by **mise** and pinned in `mise.toml`. Volta is unmaintained since 2025-11-14 and is no longer used. If `node` is not on `PATH` in a non-interactive shell, run `mise exec -- npm test`.
 
 ---

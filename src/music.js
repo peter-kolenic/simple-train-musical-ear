@@ -48,3 +48,14 @@ export const matches = (target, guess, mode = 'exact') => {
   if (mode === 'pitchClass') return pitchClass(guess - target) === 0;
   throw new Error(`unknown match mode: ${mode}`);
 };
+
+// The note for a letter shortcut: the note in [low, high] whose name in the
+// style is that letter. shift 0 is the lowest such note, shift 1 the next one.
+// Central style: H = 11, B = B♭. International style: B = 11, no H.
+// Returns null when no note matches.
+export const noteForLetter = (letter, { low, high, style = 'central', shift = 0 }) => {
+  const name = letter.toUpperCase();
+  const hits = buildNoteSet({ low, high, whiteOnly: false })
+    .filter((m) => noteName(m, { style }) === name);
+  return hits[shift] ?? null;
+};

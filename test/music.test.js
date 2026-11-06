@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   midiToFreq, noteName, isBlack, buildNoteSet, matches,
-  pitchClass, octaveOf, spansOctaves,
+  pitchClass, octaveOf, spansOctaves, noteForLetter,
 } from '../src/music.js';
 
 test('midiToFreq: A4 = 440 Hz', () => {
@@ -116,4 +116,22 @@ test('matches: pitch class across octaves', () => {
 
 test('matches: unknown mode throws', () => {
   assert.throws(() => matches(60, 60, 'fuzzy'));
+});
+
+test('noteForLetter: central style, lowest octave and Shift', () => {
+  const r = { low: 60, high: 84 };
+  assert.equal(noteForLetter('c', r), 60);
+  assert.equal(noteForLetter('C', { ...r, shift: 1 }), 72);
+  assert.equal(noteForLetter('c', { ...r, shift: 2 }), 84);
+  assert.equal(noteForLetter('h', r), 71);
+  assert.equal(noteForLetter('b', r), 70); // B = B♭ in central style
+  assert.equal(noteForLetter('e', { ...r, shift: 2 }), null);
+  assert.equal(noteForLetter('x', r), null);
+});
+
+test('noteForLetter: international style', () => {
+  const r = { low: 60, high: 84, style: 'international' };
+  assert.equal(noteForLetter('b', r), 71);
+  assert.equal(noteForLetter('h', r), null);
+  assert.equal(noteForLetter('g', { ...r, shift: 1 }), 79);
 });

@@ -13,10 +13,13 @@ const MARKER = '<!--SCRIPT-->';
 // Dependency order. Add modules here as phases add them.
 const MODULES = ['music.js', 'game.js', 'audio.js', 'ui.js'];
 
+// An import statement can span many lines: remove it up to its module string.
+const IMPORT = /^\s*import\s[^;'"]*?(?:from\s*)?['"][^'"]+['"]\s*;?[^\S\n]*\n?/gm;
+
 const stripModuleSyntax = (code) =>
   code
+    .replace(IMPORT, '')
     .split('\n')
-    .filter((line) => !/^\s*import\s/.test(line))
     .filter((line) => !/^\s*export\s*\{[^}]*\}\s*;?\s*$/.test(line))
     .map((line) => line.replace(/^(\s*)export\s+(default\s+)?/, '$1'))
     .join('\n');
@@ -30,6 +33,10 @@ if (!html.includes(MARKER)) throw new Error(`index.html has no ${MARKER} marker`
 
 // A literal "</script" in the bundle would end the script element early.
 if (/<\/script/i.test(bundle)) throw new Error('bundle contains "</script"');
+
+// All modules share one scope. Parse the bundle now, so that a duplicate
+// top-level name fails the build and not the page. This does not run the code.
+new Function(`'use strict';\n${bundle}`);
 
 const script = `<script>\n(() => {\n'use strict';\n${bundle}\n})();\n</script>`;
 // Function replacer: "$" in the bundle must not act as a replacement pattern.

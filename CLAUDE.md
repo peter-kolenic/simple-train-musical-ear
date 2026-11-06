@@ -28,15 +28,18 @@ Each phase ends with an **Acceptance** list. Claude Code checks the automatable 
 | 1 — Scaffold, music math, build | **Done.** 20 tests pass. Build output is 3.4 KB. Checked in Chrome on macOS: the placeholder renders, no console errors. |
 | 2 — Game logic | **Done.** 44 tests pass (24 new in `game.test.js`). |
 | 3 — Audio engine | **Done.** 63 tests pass (19 new in `audio.test.js`). Measured in Chrome with `OfflineAudioContext`: A4 = 440 Hz, 5 ms attack, no hard clip with 15 notes. The by-ear check is still open. |
-| 4 — Playable UI | **Next.** Not started |
-| 5 — Settings, stats, polish, delivery | Not started |
+| 4 — Playable UI | **Done.** 65 tests pass. Checked in Chrome on macOS: Start gate, mouse and keyboard guesses, explore, replays, Next, highlights, score. No console errors. The by-ear check is still open. |
+| 5 — Settings, stats, polish, delivery | **Next.** Not started |
 | 6 — MIDI (optional) | Not started |
 
 ### Decisions made during implementation
 - **Build:** `build.mjs` removes `import` lines and `export` keywords. It concatenates the modules in the order of its `MODULES` list inside one IIFE with `'use strict'`. The script replaces the `<!--SCRIPT-->` marker in `src/index.html`. The build fails if the bundle contains `</script`.
 - **`package.json`:** contains `"type": "module"` (Node needs it to load `src/*.js` as ES modules in tests), `"name"`, `"private"`, and the two scripts. No dependencies.
 - **`music.js`:** also exports the helpers `pitchClass`, `octaveOf`, and `spansOctaves`.
-- **`ui.js` (Phase 1):** a placeholder that shows the default note set in both naming styles. This proves that the bundled script runs. Phase 4 replaces it.
+- **`ui.js`:** one module-level `game` state. `dispatch(action, arg)` runs the action, stops the notes that sound (not for `explore`), plays the `play` effects, and calls `render()`. `render()` draws everything from the state, so the `show` effect needs no own code.
+- **Shared scope:** after the build, all modules share one scope. Top-level names must be unique in all modules. `build.mjs` parses the bundle with `new Function` and fails on a duplicate. It also removes multi-line `import` statements.
+- **Letter keys:** `noteForLetter` (in `music.js`) maps a letter to the lowest note in the range with that name. `Shift` gives the next octave. C6 has no letter key; use the mouse. Central style: `B` is B♭, so it is dimmed in white-only mode.
+- **Keys:** a guess uses `pointerdown`, not `click`, so the note starts at once. Dimmed keys do nothing before the answer. The buttons lose focus after a mouse click, so `Space` and `Enter` always go to the shortcuts.
 - **Default range:** C4–C6 (60–84), white keys only. Central European names (H, B = B♭). Black keys stay available through `whiteOnly: false` (setting in Phase 5).
 - **Browser check by Claude:** the Claude in Chrome extension cannot open `file://` URLs. Serve `dist/` on localhost for the check: `cd dist && python3 -m http.server 8765 --bind 127.0.0.1`, then open `http://127.0.0.1:8765/ear-trainer.html`. The user still opens the file directly on Windows.
 - **`game.js` API:** each action is `(state, arg?) → {state, effects}` and does not change its input. Illegal transitions throw. A guess outside the note set throws. `explore()` is allowed only in `ANSWERED`. The UI calls `guess()` in `AWAITING_GUESS` and `explore()` after the answer.

@@ -27,8 +27,8 @@ Each phase ends with an **Acceptance** list. Claude Code checks the automatable 
 |---|---|
 | 1 — Scaffold, music math, build | **Done.** 20 tests pass. Build output is 3.4 KB. Checked in Chrome on macOS: the placeholder renders, no console errors. |
 | 2 — Game logic | **Done.** 44 tests pass (24 new in `game.test.js`). |
-| 3 — Audio engine | **Next.** Not started |
-| 4 — Playable UI | Not started |
+| 3 — Audio engine | **Done.** 63 tests pass (19 new in `audio.test.js`). Measured in Chrome with `OfflineAudioContext`: A4 = 440 Hz, 5 ms attack, no hard clip with 15 notes. The by-ear check is still open. |
+| 4 — Playable UI | **Next.** Not started |
 | 5 — Settings, stats, polish, delivery | Not started |
 | 6 — MIDI (optional) | Not started |
 
@@ -44,6 +44,10 @@ Each phase ends with an **Acceptance** list. Claude Code checks the automatable 
 - **Config in state:** `createGame({noteSet, octaveMode, playTargetOnWrong, referenceNote, rng, stats})`. Change it with `configure(state, patch)`. Defaults: `exact`, `playTargetOnWrong: true`, `referenceNote: null`.
 - **Stats:** plain JSON data, `{notes: {[t]: {attempts, correct}}, confusions: {[t]: {[g]: n}}}`. `game.js` does not touch `localStorage`. The UI loads and saves `state.stats` (Phase 4/5). Query helpers: `weakestNotes`, `topConfusions`.
 - **RNG:** `seededRng(seed)` (mulberry32) is exported for tests.
+- **`audio.js`:** `createSynth(ctx, {voice})` takes an `AudioContext`, so the tests use a fake context. The UI uses the module singleton: `ensureAudio()` (call inside a user gesture, resolves to the synth), `playNote(midi, {duration, when})`, `stopAll()`, `setVoice(v)`, `audioReady()`. `when` is a delay in seconds from now, the same as the effect `delay`. `duration: null` lets the note decay naturally. `playNote` returns a handle with `stop()`.
+- **Voice:** each note is partial oscillators → envelope gains → one release gain → master gain 0.3 → soft clipper → destination. Partial amplitudes are normalized to a sum of 1. Partials above 90 % of Nyquist are dropped.
+- **No `DynamicsCompressorNode`:** in Chrome it softens each note onset for about 100 ms (measured). A `WaveShaperNode` soft clipper (linear for |x| ≤ 0.5, tanh above) prevents hard clips instead.
+- **Debug section:** `?debug` shows buttons for C4–C5 (chromatic), chords, a 7-note cluster, fast repeats, a short note, and A4 ×4 for a tuner. It also has a voice picker and "Stop all".
 - **Node:** Node 26 (Active LTS) is managed by **mise** and pinned in `mise.toml`. Volta is unmaintained since 2025-11-14 and is no longer used. If `node` is not on `PATH` in a non-interactive shell, run `mise exec -- npm test`.
 
 ---

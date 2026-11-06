@@ -11,7 +11,7 @@ const OUT = join(root, 'dist', 'ear-trainer.html');
 const MARKER = '<!--SCRIPT-->';
 
 // Dependency order. Add modules here as phases add them.
-const MODULES = ['music.js', 'game.js', 'ui.js'];
+const MODULES = ['music.js', 'game.js', 'audio.js', 'ui.js'];
 
 const stripModuleSyntax = (code) =>
   code

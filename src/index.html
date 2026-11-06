@@ -24,6 +24,10 @@
   main { max-width: 960px; margin: 0 auto; }
   h1 { font-size: 1.6rem; margin: 0 0 8px; }
   .muted { color: var(--muted); }
+  #debug { margin-top: 24px; padding: 12px 16px; border: 1px dashed var(--muted); border-radius: 8px; }
+  #debug h2 { font-size: 1.1rem; margin: 0 0 8px; }
+  #debug .row { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; align-items: center; }
+  #debug button { font: inherit; padding: 4px 10px; min-width: 3em; }
 </style>
 </head>
 <body>
@@ -31,6 +35,17 @@
   <h1>Ear Trainer</h1>
   <p class="muted">Phase 1 placeholder. The game is not yet available.</p>
   <p id="app">If you see this text, the script did not run.</p>
+  <section id="debug" hidden>
+    <h2>Audio debug</h2>
+    <p class="muted">Check by ear: no clicks at note start or end, no distortion when notes overlap, A4 = 440 Hz on a tuner.</p>
+    <div class="row">
+      <label>Voice <select id="debug-voice"></select></label>
+      <button type="button" id="debug-stop">Stop all</button>
+      <span id="debug-state" class="muted"></span>
+    </div>
+    <div class="row" id="debug-notes"></div>
+    <div class="row" id="debug-extra"></div>
+  </section>
 </main>
 <!--SCRIPT-->
 </body>

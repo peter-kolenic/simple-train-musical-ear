@@ -127,6 +127,13 @@ export const next = (state) => {
   return newRound(state);
 };
 
+// A new target without a score. The UI uses it when a settings change
+// removes the current target from the note set.
+export const skip = (state) => {
+  requirePhase(state, 'skip', AWAITING_GUESS);
+  return newRound(state);
+};
+
 // Replays the target, with the reference tone when it is on.
 export const replayTarget = (state) => {
   requirePhase(state, 'replayTarget', AWAITING_GUESS, ANSWERED);

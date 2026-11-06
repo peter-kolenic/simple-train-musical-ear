@@ -29,8 +29,8 @@ Each phase ends with an **Acceptance** list. Claude Code checks the automatable 
 | 2 — Game logic | **Done.** 44 tests pass (24 new in `game.test.js`). |
 | 3 — Audio engine | **Done.** 63 tests pass (19 new in `audio.test.js`). Measured in Chrome with `OfflineAudioContext`: A4 = 440 Hz, 5 ms attack, no hard clip with 15 notes. The by-ear check is still open. |
 | 4 — Playable UI | **Done.** 65 tests pass. Checked in Chrome on macOS: Start gate, mouse and keyboard guesses, explore, replays, Next, highlights, score. No console errors. The by-ear check is still open. |
-| 5 — Settings, stats, polish, delivery | **Next.** Not started |
-| 6 — MIDI (optional) | Not started |
+| 5 — Settings, stats, polish, delivery | **Done.** 76 tests pass. Build output is 38.8 KB, with no external URLs. Checked in Chrome on macOS: all settings, persistence after reload, broken stored data, stats, two-click reset, reference tone, no horizontal scroll. Not checked: Edge or Chrome on Windows, `file://` storage. |
+| 6 — MIDI (optional) | **Next.** Not started. Needs the EZ-310. |
 
 ### Decisions made during implementation
 - **Build:** `build.mjs` removes `import` lines and `export` keywords. It concatenates the modules in the order of its `MODULES` list inside one IIFE with `'use strict'`. The script replaces the `<!--SCRIPT-->` marker in `src/index.html`. The build fails if the bundle contains `</script`.
@@ -51,6 +51,11 @@ Each phase ends with an **Acceptance** list. Claude Code checks the automatable 
 - **Voice:** each note is partial oscillators → envelope gains → one release gain → master gain 0.3 → soft clipper → destination. Partial amplitudes are normalized to a sum of 1. Partials above 90 % of Nyquist are dropped.
 - **No `DynamicsCompressorNode`:** in Chrome it softens each note onset for about 100 ms (measured). A `WaveShaperNode` soft clipper (linear for |x| ≤ 0.5, tanh above) prevents hard clips instead.
 - **Debug section:** `?debug` shows buttons for C4–C5 (chromatic), chords, a 7-note cluster, fast repeats, a short note, and A4 ×4 for a tuner. It also has a voice picker and "Stop all".
+- **`settings.js`:** pure. `normalizeSettings(raw)` and `normalizeStats(raw)` turn any stored value into valid data. Bad fields get the default. `gameConfig(settings)` gives the part that `game.js` uses. Range endpoints are white keys from C2 to C7. Reference tones: C3, C4, A4, C5.
+- **Storage:** keys `ear-trainer.settings.v1` and `ear-trainer.stats.v1`. Every access is in try/catch. Stats are saved after each scored guess. The session score is not saved.
+- **Settings change:** applies at once, through `configure()`. If the current target is not in the new note set, `skip()` (new in `game.js`) draws a new target with no score. The range selects offer only low < high.
+- **Reset stats:** two clicks, because a browser dialog would block the page.
+- **Chromium 109:** the newest features in use are `??` (Chrome 80), `Object.fromEntries` (73), and flex `gap` (84). Tests can use newer features, because they run only in Node.
 - **Node:** Node 26 (Active LTS) is managed by **mise** and pinned in `mise.toml`. Volta is unmaintained since 2025-11-14 and is no longer used. If `node` is not on `PATH` in a non-interactive shell, run `mise exec -- npm test`.
 
 ---

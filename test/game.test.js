@@ -5,7 +5,7 @@ import {
   IDLE, AWAITING_GUESS, ANSWERED, WRONG_TARGET_DELAY, REFERENCE_DELAY,
   seededRng, emptyStats, recordAnswer, weakestNotes, topConfusions,
   createGame, configure, pickTarget,
-  start, next, replayTarget, guess, replayGuess, explore, resetSession, resetStats,
+  start, next, skip, replayTarget, guess, replayGuess, explore, resetSession, resetStats,
 } from '../src/game.js';
 
 const NOTES = buildNoteSet(); // white keys C4–C6
@@ -263,4 +263,21 @@ test('resetSession and resetStats', () => {
   assert.deepEqual(resetSession(s).stats, s.stats);
   assert.deepEqual(resetStats(s).stats, emptyStats());
   assert.deepEqual(resetStats(s).session, s.session);
+});
+
+test('skip draws a new target without a score, only in AWAITING_GUESS', () => {
+  const s = awaiting(E4);
+  const { state, effects } = skip(s);
+  assert.equal(state.phase, AWAITING_GUESS);
+  assert.notEqual(state.target, E4);
+  assert.deepEqual(state.session, s.session);
+  assert.deepEqual(state.stats, s.stats);
+  assert.deepEqual(effects, [{ type: 'play', midi: state.target, delay: 0 }]);
+  assert.throws(() => skip(createGame({ noteSet: NOTES })));
+  assert.throws(() => skip(guess(s, E4).state));
+});
+
+test('skip uses the new note set after configure', () => {
+  const s = configure(awaiting(E4), { noteSet: [61, 63] });
+  assert.ok([61, 63].includes(skip(s).state.target));
 });

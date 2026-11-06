@@ -1,27 +1,53 @@
-// DOM wiring: start gate, piano keyboard, buttons, banner, shortcuts.
-// It runs the effects from game.js. With ?debug, it also shows the audio
-// debug section.
+// DOM wiring: start gate, piano keyboard, buttons, banner, shortcuts,
+// settings and stats panels, localStorage. It runs the effects from game.js.
+// With ?debug, it also shows the audio debug section.
 // All modules share one scope after the build. Do not reuse a top-level name
 // from music.js, game.js, or audio.js here.
 import { buildNoteSet, noteName, spansOctaves, isBlack, noteForLetter } from './music.js';
 import {
   IDLE, AWAITING_GUESS, ANSWERED,
-  createGame, start, next, replayTarget, guess, replayGuess, explore,
+  createGame, configure, start, next, skip, replayTarget, guess, replayGuess, explore,
+  resetStats, weakestNotes, topConfusions,
 } from './game.js';
 import { VOICES, ensureAudio, playNote, stopAll, setVoice } from './audio.js';
+import {
+  REFERENCE_NOTES, rangeEndpoints, normalizeSettings, normalizeStats, gameConfig,
+} from './settings.js';
 
-const RANGE = { low: 60, high: 84 };
-const NAME_STYLE = 'central';
+const SETTINGS_KEY = 'ear-trainer.settings.v1';
+const STATS_KEY = 'ear-trainer.stats.v1';
 const KEY_FLASH_MS = 150;
+const RESET_ARM_MS = 4000;
+const STATS_ROWS = 5;
 const BLACK_KEY_WIDTH = 0.6; // fraction of a white key
 
 const $ = (id) => document.getElementById(id);
 
-let game = createGame({ noteSet: buildNoteSet({ ...RANGE, whiteOnly: true }) });
+// ---- storage: every access in try/catch. The app works without it. ----
+
+const loadJSON = (key) => {
+  try {
+    const text = localStorage.getItem(key);
+    return text === null ? null : JSON.parse(text);
+  } catch {
+    return null;
+  }
+};
+
+const saveJSON = (key, value) => {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // No storage (private window, blocked, or full). Keep the data in memory.
+  }
+};
+
+let settings = normalizeSettings(loadJSON(SETTINGS_KEY));
+let game = createGame({ ...gameConfig(settings), stats: normalizeStats(loadJSON(STATS_KEY)) });
 const keyEls = new Map(); // midi -> key element
 
 const label = (m) =>
-  noteName(m, { style: NAME_STYLE, showOctave: spansOctaves(RANGE.low, RANGE.high) });
+  noteName(m, { style: settings.nameStyle, showOctave: spansOctaves(settings.low, settings.high) });
 
 const inSet = (m) => game.config.noteSet.includes(m);
 
@@ -36,9 +62,14 @@ const runEffects = (effects) =>
 // Runs a game action and its effects. stopFirst silences the notes that still sound.
 const dispatch = (action, arg, { stopFirst = true } = {}) => {
   const { state, effects } = action(game, arg);
+  const statsChanged = state.stats !== game.stats;
   game = state;
   if (stopFirst) stopAll();
   runEffects(effects);
+  if (statsChanged) {
+    saveJSON(STATS_KEY, game.stats);
+    renderStats();
+  }
   render();
 };
 
@@ -117,11 +148,51 @@ const render = () => {
   });
 };
 
+const renderStats = () => {
+  const body = $('stats-body');
+  const weak = weakestNotes(game.stats, STATS_ROWS);
+  const conf = topConfusions(game.stats, STATS_ROWS);
+  body.textContent = '';
+  if (weak.length === 0) {
+    const p = document.createElement('p');
+    p.className = 'muted';
+    p.textContent = 'No answers yet.';
+    body.append(p);
+    return;
+  }
+  const column = (title, items) => {
+    const div = document.createElement('div');
+    const h = document.createElement('h3');
+    h.textContent = title;
+    const list = document.createElement('ol');
+    items.forEach((text) => {
+      const li = document.createElement('li');
+      li.textContent = text;
+      list.append(li);
+    });
+    div.append(h, items.length ? list : Object.assign(document.createElement('p'), {
+      className: 'muted', textContent: 'None yet.',
+    }));
+    return div;
+  };
+  const cols = document.createElement('div');
+  cols.className = 'stats-cols';
+  cols.append(
+    column('Weakest notes', weak.map((w) =>
+      `${label(w.midi)}: ${w.correct} of ${w.attempts} correct (${Math.round(w.accuracy * 100)} %)`)),
+    column('Top confusions', conf.map((c) =>
+      `${label(c.target)} heard as ${label(c.guess)}: ${c.count}×`)),
+  );
+  body.append(cols);
+};
+
 // White keys share the row equally. A black key sits on the boundary
 // after the white keys below it.
 const buildKeyboard = () => {
   const kb = $('keyboard');
-  const all = buildNoteSet({ ...RANGE, whiteOnly: false });
+  kb.textContent = '';
+  keyEls.clear();
+  const all = buildNoteSet({ low: settings.low, high: settings.high, whiteOnly: false });
   const whites = all.filter((m) => !isBlack(m));
   const w = 100 / whites.length;
   all.forEach((m) => {
@@ -131,7 +202,7 @@ const buildKeyboard = () => {
     el.setAttribute('role', 'button');
     el.setAttribute('aria-label', label(m));
     // Show the octave only on C, so the keys stay easy to read.
-    el.textContent = noteName(m, { style: NAME_STYLE, showOctave: m % 12 === 0 });
+    el.textContent = noteName(m, { style: settings.nameStyle, showOctave: m % 12 === 0 });
     if (black) {
       const below = whites.filter((x) => x < m).length;
       el.style.left = `${below * w - (w * BLACK_KEY_WIDTH) / 2}%`;
@@ -171,7 +242,9 @@ const onKeyDown = (e) => {
     e.preventDefault();
     onReplayGuess();
   } else if (/^[a-h]$/.test(k)) {
-    const m = noteForLetter(k, { ...RANGE, style: NAME_STYLE, shift: e.shiftKey ? 1 : 0 });
+    const m = noteForLetter(k, {
+      low: settings.low, high: settings.high, style: settings.nameStyle, shift: e.shiftKey ? 1 : 0,
+    });
     if (m === null) return;
     e.preventDefault();
     onPianoKey(m);
@@ -187,8 +260,92 @@ const onButton = (id, fn) =>
 
 const helpLetters = () =>
   buildNoteSet({ low: 60, high: 71, whiteOnly: true })
-    .map((m) => noteName(m, { style: NAME_STYLE }))
+    .map((m) => noteName(m, { style: settings.nameStyle }))
     .join(' ');
+
+// ---- settings panel ----
+
+const fillSelect = (el, options, value) => {
+  el.textContent = '';
+  options.forEach(([v, text]) => el.add(new Option(text, String(v))));
+  el.value = String(value);
+};
+
+// The range lists offer only low < high, so the form cannot make a bad range.
+const fillSettingsForm = () => {
+  const s = settings;
+  const name = (m) => noteName(m, { style: s.nameStyle, showOctave: true });
+  const ends = rangeEndpoints();
+  fillSelect($('set-low'), ends.filter((m) => m < s.high).map((m) => [m, name(m)]), s.low);
+  fillSelect($('set-high'), ends.filter((m) => m > s.low).map((m) => [m, name(m)]), s.high);
+  fillSelect($('set-reference'),
+    [['off', 'Off'], ...REFERENCE_NOTES.map((m) => [m, `${name(m)}, then the tone`])],
+    s.referenceNote === null ? 'off' : s.referenceNote);
+  $('set-white').value = String(s.whiteOnly);
+  $('set-octave').value = s.octaveMode;
+  $('set-names').value = s.nameStyle;
+  $('set-wrong').value = String(s.playTargetOnWrong);
+  $('set-voice').value = s.voice;
+};
+
+const readSettingsForm = () => ({
+  low: Number($('set-low').value),
+  high: Number($('set-high').value),
+  whiteOnly: $('set-white').value === 'true',
+  octaveMode: $('set-octave').value,
+  nameStyle: $('set-names').value,
+  playTargetOnWrong: $('set-wrong').value === 'true',
+  referenceNote: $('set-reference').value === 'off' ? null : Number($('set-reference').value),
+  voice: $('set-voice').value,
+});
+
+const applySettings = (raw) => {
+  settings = normalizeSettings(raw);
+  saveJSON(SETTINGS_KEY, settings);
+  setVoice(settings.voice);
+  game = configure(game, gameConfig(settings));
+  buildKeyboard();
+  fillSettingsForm();
+  $('help-letters').textContent = helpLetters();
+  renderStats();
+  // The current target can drop out of the new note set. Then draw a new one.
+  if (game.phase === AWAITING_GUESS && !inSet(game.target)) dispatch(skip);
+  else render();
+};
+
+const setupSettings = () => {
+  fillSettingsForm();
+  setVoice(settings.voice);
+  $('settings-panel').querySelectorAll('select').forEach((el) =>
+    el.addEventListener('change', () => {
+      applySettings(readSettingsForm());
+      // Give the shortcuts back to the page.
+      el.blur();
+    }));
+};
+
+// Reset needs two clicks. A browser dialog would block the page.
+const setupResetStats = () => {
+  const btn = $('reset-stats');
+  let timer = null;
+  const disarm = () => {
+    clearTimeout(timer);
+    btn.classList.remove('armed');
+    btn.textContent = 'Reset stats';
+  };
+  btn.addEventListener('click', () => {
+    if (!btn.classList.contains('armed')) {
+      btn.classList.add('armed');
+      btn.textContent = 'Click again to delete all stats';
+      timer = setTimeout(disarm, RESET_ARM_MS);
+      return;
+    }
+    disarm();
+    game = resetStats(game);
+    saveJSON(STATS_KEY, game.stats);
+    renderStats();
+  });
+};
 
 const setupGame = () => {
   buildKeyboard();
@@ -198,6 +355,9 @@ const setupGame = () => {
   onButton('play-guess', onReplayGuess);
   onButton('next', onNext);
   document.addEventListener('keydown', onKeyDown);
+  setupSettings();
+  setupResetStats();
+  renderStats();
   render();
 };
 

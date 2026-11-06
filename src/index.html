@@ -73,7 +73,7 @@
     user-select: none; -webkit-user-select: none; touch-action: manipulation;
   }
   .key {
-    position: relative; padding: 0 0 8px; border-radius: 0 0 6px 6px;
+    position: relative; overflow: hidden; padding: 0 0 8px; border-radius: 0 0 6px 6px;
     display: flex; align-items: flex-end; justify-content: center;
     font-size: 0.85rem; transition: background-color 80ms;
   }
@@ -98,6 +98,22 @@
     font: 0.8rem ui-monospace, Consolas, monospace; padding: 1px 5px;
     border: 1px solid var(--border); border-radius: 4px; background: var(--panel);
   }
+
+  details.panel {
+    margin: 12px 0; padding: 8px 16px; border-radius: 10px;
+    background: var(--panel); border: 1px solid var(--border);
+  }
+  details.panel summary { cursor: pointer; font-weight: 600; padding: 4px 0; }
+  .form-grid {
+    display: grid; grid-template-columns: max-content minmax(0, 1fr);
+    gap: 8px 16px; align-items: center; margin: 8px 0;
+  }
+  .form-grid select { font: inherit; max-width: 100%; justify-self: start; }
+  .stats-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px 24px; }
+  .stats-cols h3 { font-size: 1rem; margin: 8px 0 4px; }
+  .stats-cols ol { margin: 0; padding-left: 1.4em; }
+  #reset-stats { margin: 8px 0; padding: 4px 12px; border-radius: 6px; background: transparent; border: 1px solid var(--border); }
+  #reset-stats.armed { border-color: var(--bad); color: var(--bad); }
 
   #debug { margin-top: 24px; padding: 12px 16px; border: 1px dashed var(--muted); border-radius: 8px; }
   #debug h2 { font-size: 1.1rem; margin: 0 0 8px; }
@@ -132,6 +148,48 @@
       lowest octave. Add <kbd>Shift</kbd> for one octave higher.
     </p>
   </section>
+
+  <details class="panel" id="settings-panel">
+    <summary>Settings</summary>
+    <div class="form-grid">
+      <label for="set-low">Lowest note</label> <select id="set-low"></select>
+      <label for="set-high">Highest note</label> <select id="set-high"></select>
+      <label for="set-white">Notes</label>
+      <select id="set-white">
+        <option value="true">White keys only</option>
+        <option value="false">All 12 notes</option>
+      </select>
+      <label for="set-octave">Octave</label>
+      <select id="set-octave">
+        <option value="exact">Exact octave must match</option>
+        <option value="pitchClass">Any octave is correct</option>
+      </select>
+      <label for="set-names">Note names</label>
+      <select id="set-names">
+        <option value="central">Central European (C D E F G A H, B = B♭)</option>
+        <option value="international">International (C D E F G A B)</option>
+      </select>
+      <label for="set-wrong">After a wrong answer</label>
+      <select id="set-wrong">
+        <option value="true">Also play the correct note</option>
+        <option value="false">Play only my guess</option>
+      </select>
+      <label for="set-reference">Reference tone</label> <select id="set-reference"></select>
+      <label for="set-voice">Sound</label>
+      <select id="set-voice">
+        <option value="piano-ish">Soft piano</option>
+        <option value="sine">Sine</option>
+        <option value="triangle">Triangle</option>
+      </select>
+    </div>
+    <p class="muted" id="settings-note">Changes apply at once. If the current tone is not in the new note set, a new tone plays.</p>
+  </details>
+
+  <details class="panel" id="stats-panel">
+    <summary>Stats</summary>
+    <div id="stats-body"></div>
+    <button type="button" id="reset-stats">Reset stats</button>
+  </details>
 
   <section id="debug" hidden>
     <h2>Audio debug</h2>

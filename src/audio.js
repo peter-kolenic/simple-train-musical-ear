@@ -8,7 +8,7 @@ export const VOICES = ['piano-ish', 'sine', 'triangle'];
 
 const MASTER_GAIN = 0.3;
 const ATTACK = 0.005; // s, linear attack
-const DECAY = 1.2; // s, time for the fundamental to reach SILENCE
+const DECAY = 3.6; // s, time for the fundamental to reach SILENCE
 const SILENCE = 0.0001; // exponential ramps cannot start or end at 0
 const RELEASE_TC = 0.03; // s, time constant of an early release
 const RELEASE_END = 8 * RELEASE_TC; // after 8 time constants the level is below 0.04 %

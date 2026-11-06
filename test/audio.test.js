@@ -73,7 +73,7 @@ test('piano-ish has 6 harmonics with amplitude 1/n^1.5', () => {
 test('piano-ish: higher harmonics decay sooner', () => {
   const decays = partials('piano-ish').map((p) => p.decay);
   decays.slice(1).forEach((d, i) => assert.ok(d < decays[i]));
-  assert.ok(close(decays[0], 1.2));
+  assert.ok(close(decays[0], 3.6));
 });
 
 test('sine and triangle use one oscillator of that type', () => {
@@ -134,7 +134,7 @@ test('when delays the start of the note', () => {
 test('the oscillators stop after the natural decay', () => {
   const ctx = fakeContext();
   createSynth(ctx).playNote(60);
-  ctx.created.oscs.forEach((o) => assert.ok(close(o.stopAt, 10 + 0.005 + 1.2)));
+  ctx.created.oscs.forEach((o) => assert.ok(close(o.stopAt, 10 + 0.005 + 3.6)));
 });
 
 test('a short duration releases the note with setTargetAtTime', () => {

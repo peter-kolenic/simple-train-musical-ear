@@ -118,7 +118,7 @@ Slovakia and Central Europe use **H** for B and **B** for B♭. Provide a settin
 ### 3.3 Sound
 A plain sine wave is hard to place in a register and sounds artificial. Use a cheap **additive "soft piano-ish" voice** instead:
 - Harmonics 1–6 with amplitudes ≈ `1/n^1.5`. Each harmonic decays faster than the one below it (higher partials die sooner).
-- Envelope: about 5 ms linear attack, then exponential decay toward silence over about 1.2 s. Release with `setTargetAtTime` when stopped early.
+- Envelope: about 5 ms linear attack, then exponential decay toward silence over about 3.6 s (was 1.2 s; the user asked for 3× longer). Release with `setTargetAtTime` when stopped early.
 - Master gain stays around 0.3 to avoid clipping when notes overlap. Every node is disconnected after it finishes.
 - **Never start from a gain of exactly 0 with `exponentialRampToValueAtTime`**, because it throws. Start from 0.0001.
 - **Autoplay policy:** create or `resume()` the `AudioContext` only inside a user gesture. On first load, the UI shows a "Start" button.

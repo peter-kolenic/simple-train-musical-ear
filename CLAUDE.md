@@ -21,6 +21,26 @@ Each phase ends with an **Acceptance** list. Claude Code checks the automatable 
 
 ---
 
+## Status
+
+| Phase | State |
+|---|---|
+| 1 — Scaffold, music math, build | **Done.** 19 tests pass. Build output is 3.3 KB. Waiting for the human browser check. |
+| 2 — Game logic | Not started |
+| 3 — Audio engine | Not started |
+| 4 — Playable UI | Not started |
+| 5 — Settings, stats, polish, delivery | Not started |
+| 6 — MIDI (optional) | Not started |
+
+### Decisions made during implementation
+- **Build:** `build.mjs` removes `import` lines and `export` keywords. It concatenates the modules in the order of its `MODULES` list inside one IIFE with `'use strict'`. The script replaces the `<!--SCRIPT-->` marker in `src/index.html`. The build fails if the bundle contains `</script`.
+- **`package.json`:** contains `"type": "module"` (Node needs it to load `src/*.js` as ES modules in tests), `"name"`, `"private"`, and the two scripts. No dependencies.
+- **`music.js`:** also exports the helpers `pitchClass`, `octaveOf`, and `spansOctaves`.
+- **`ui.js` (Phase 1):** a placeholder that shows the default note set in both naming styles. This proves that the bundled script runs. Phase 4 replaces it.
+- **Node:** Node 26 (Active LTS) is managed by **mise** and pinned in `mise.toml`. Volta is unmaintained since 2025-11-14 and is no longer used. If `node` is not on `PATH` in a non-interactive shell, run `mise exec -- npm test`.
+
+---
+
 ## 1. Goal and core loop
 
 1. The app plays a **target tone**.
@@ -35,7 +55,7 @@ Only the first guess of a round is scored. After that, every note button is a fr
 ## 2. Hard constraints (for Claude Code)
 
 - **Deliverable:** `dist/ear-trainer.html`. This is one self-contained file with inline JS and CSS and no network requests: no CDNs, no fonts, no audio samples. Double-clicking it on Windows 10 must work offline in Edge or Chrome.
-- **Zero npm dependencies.** Node is used only for tests (`node --test`) and for a tiny build script. Node is already installed via Volta.
+- **Zero npm dependencies.** Node is used only for tests (`node --test`) and for a tiny build script. Node 26 is managed by mise (`mise.toml`).
 - **Source layout** keeps the logic testable outside the browser:
 
 ```

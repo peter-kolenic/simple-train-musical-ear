@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ear Trainer</title>
+<style>
+  :root {
+    --bg: #f6f5f2;
+    --fg: #1d1d1f;
+    --muted: #6b6b70;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #18181a; --fg: #ececee; --muted: #9a9aa0; }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 24px 16px;
+    background: var(--bg);
+    color: var(--fg);
+    font: 16px/1.5 system-ui, "Segoe UI", sans-serif;
+  }
+  main { max-width: 960px; margin: 0 auto; }
+  h1 { font-size: 1.6rem; margin: 0 0 8px; }
+  .muted { color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Ear Trainer</h1>
+  <p class="muted">Phase 1 placeholder. The game is not yet available.</p>
+  <p id="app">If you see this text, the script did not run.</p>
+</main>
+<script>
+(() => {
+'use strict';
+// ---- music.js ----
+// Pure note math. No DOM, no Web Audio.
+// A note is a MIDI number: C4 = 60, A4 = 69.
+
+const A4_MIDI = 69;
+const A4_FREQ = 440;
+
+const BLACK_PCS = [1, 3, 6, 8, 10];
+
+const NAMES = {
+  international: ['C', 'C♯', 'D', 'D♯', 'E', 'F', 'F♯', 'G', 'G♯', 'A', 'A♯', 'B'],
+  central: ['C', 'Cis', 'D', 'Dis', 'E', 'F', 'Fis', 'G', 'Gis', 'A', 'B', 'H'],
+};
+
+// Pitch class 0..11. Correct for negative input too.
+const pitchClass = (midi) => ((midi % 12) + 12) % 12;
+
+// Scientific octave number: C4 = 60.
+const octaveOf = (midi) => Math.floor(midi / 12) - 1;
+
+// 12-TET frequency in Hz.
+const midiToFreq = (midi) => A4_FREQ * Math.pow(2, (midi - A4_MIDI) / 12);
+
+const isBlack = (midi) => BLACK_PCS.includes(pitchClass(midi));
+
+// style: 'central' (default) or 'international'.
+const noteName = (midi, { style = 'central', showOctave = false } = {}) => {
+  const table = NAMES[style];
+  if (!table) throw new Error(`unknown naming style: ${style}`);
+  const base = table[pitchClass(midi)];
+  return showOctave ? `${base}${octaveOf(midi)}` : base;
+};
+
+// True when the range covers notes from more than one octave number.
+const spansOctaves = (low, high) => octaveOf(low) !== octaveOf(high);
+
+// Ascending list of MIDI numbers in [low, high].
+const buildNoteSet = ({ low = 60, high = 71, whiteOnly = true } = {}) => {
+  if (!Number.isInteger(low) || !Number.isInteger(high) || low > high) {
+    throw new Error(`bad range: ${low}..${high}`);
+  }
+  return Array.from({ length: high - low + 1 }, (_, i) => low + i)
+    .filter((m) => !whiteOnly || !isBlack(m));
+};
+
+// mode: 'exact' (default) or 'pitchClass'.
+const matches = (target, guess, mode = 'exact') => {
+  if (mode === 'exact') return target === guess;
+  if (mode === 'pitchClass') return pitchClass(guess - target) === 0;
+  throw new Error(`unknown match mode: ${mode}`);
+};
+
+// ---- ui.js ----
+// DOM wiring. Phase 1: placeholder that proves the bundled script runs.
+
+const renderPlaceholder = () => {
+  const el = document.getElementById('app');
+  const set = buildNoteSet();
+  const central = set.map((m) => noteName(m, { style: 'central' })).join(' ');
+  const intl = set.map((m) => noteName(m, { style: 'international' })).join(' ');
+  el.textContent = `Default note set — Central European: ${central} · International: ${intl}`;
+};
+
+renderPlaceholder();
+
+})();
+</script>
+</body>
+</html>

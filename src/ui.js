@@ -309,7 +309,10 @@ const applySettings = (raw) => {
   $('help-letters').textContent = helpLetters();
   renderStats();
   // The current target can drop out of the new note set. Then draw a new one.
-  if (game.phase === AWAITING_GUESS && !inSet(game.target)) dispatch(skip);
+  // Before the answer, the round has no score. After it, the score stays.
+  const lost = game.target !== null && !inSet(game.target);
+  if (lost && game.phase === AWAITING_GUESS) dispatch(skip);
+  else if (lost && game.phase === ANSWERED) dispatch(next);
   else render();
 };
 

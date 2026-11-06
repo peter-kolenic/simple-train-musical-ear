@@ -25,8 +25,8 @@ Each phase ends with an **Acceptance** list. Claude Code checks the automatable 
 
 | Phase | State |
 |---|---|
-| 1 — Scaffold, music math, build | **Done.** 19 tests pass. Build output is 3.3 KB. Waiting for the human browser check. |
-| 2 — Game logic | Not started |
+| 1 — Scaffold, music math, build | **Done.** 20 tests pass. Build output is 3.4 KB. Checked in Chrome on macOS: the placeholder renders, no console errors. |
+| 2 — Game logic | **Next.** Not started |
 | 3 — Audio engine | Not started |
 | 4 — Playable UI | Not started |
 | 5 — Settings, stats, polish, delivery | Not started |
@@ -37,6 +37,8 @@ Each phase ends with an **Acceptance** list. Claude Code checks the automatable 
 - **`package.json`:** contains `"type": "module"` (Node needs it to load `src/*.js` as ES modules in tests), `"name"`, `"private"`, and the two scripts. No dependencies.
 - **`music.js`:** also exports the helpers `pitchClass`, `octaveOf`, and `spansOctaves`.
 - **`ui.js` (Phase 1):** a placeholder that shows the default note set in both naming styles. This proves that the bundled script runs. Phase 4 replaces it.
+- **Default range:** C4–C6 (60–84), white keys only. Central European names (H, B = B♭). Black keys stay available through `whiteOnly: false` (setting in Phase 5).
+- **Browser check by Claude:** the Claude in Chrome extension cannot open `file://` URLs. Serve `dist/` on localhost for the check: `cd dist && python3 -m http.server 8765 --bind 127.0.0.1`, then open `http://127.0.0.1:8765/ear-trainer.html`. The user still opens the file directly on Windows.
 - **Node:** Node 26 (Active LTS) is managed by **mise** and pinned in `mise.toml`. Volta is unmaintained since 2025-11-14 and is no longer used. If `node` is not on `PATH` in a non-interactive shell, run `mise exec -- npm test`.
 
 ---

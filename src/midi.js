@@ -25,6 +25,15 @@ export const noteOnBytes = (note, channel, velocity) => [statusByte(0x90, channe
 export const noteOffBytes = (note, channel) => [statusByte(0x80, channel), note & 0x7f, 0];
 export const controlChangeBytes = (cc, value, channel) => [statusByte(0xb0, channel), cc & 0x7f, value & 0x7f];
 
+// Port ids can change after a reconnect (Android). If the stored id is not
+// connected, give the id of a connected port whose name matches the pattern.
+// Else null: keep the stored id.
+export const replacementPort = (storedId, ports, pattern) => {
+  if (ports.some((p) => p.id === storedId)) return null;
+  const match = ports.find((p) => pattern.test(p.name));
+  return match ? match.id : null;
+};
+
 const portList = (map) => [...map.values()].map((p) => ({ id: p.id, name: p.name || p.id }));
 
 export const createMidiHub = (access, { now = () => Date.now() } = {}) => {

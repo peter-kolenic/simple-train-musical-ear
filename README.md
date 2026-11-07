@@ -107,6 +107,31 @@ If **MIDI** shows "This browser has no Web MIDI" or MIDI does not start when you
 
 Add `?debug` to the URL to show the MIDI debug section. It shows the last messages from the keyboard. Its buttons send test messages to the light output and channel.
 
+## Play on an Android phone
+
+1. Open https://peter-kolenic.github.io/simple-train-musical-ear/ in Chrome.
+2. Connect the keyboard to the phone with a USB OTG cable (USB-C or micro-USB to USB-B).
+3. Tap **🎹 EZ-310**. Allow MIDI if Chrome asks.
+4. Tap **Start**.
+
+On a phone, the app shows large buttons and no shortcut help. On the first visit, the range is C4 to C5. Turn the phone to landscape for more keys. If the keys do not fit, the keyboard scrolls sideways.
+
+Android stops the sound when Chrome goes to the background. The app starts it again when the page shows again, or at the next tap or key.
+
+If Android gives the keyboard a new port id after a reconnect, the app selects the port with the EZ-310 name. Then it lights the key again if necessary.
+
+### Debug the page on the phone
+
+1. On the phone, open **Settings → About phone**. Tap **Build number** 7 times. This turns on the developer options.
+2. Open **Settings → System → Developer options**. Turn on **USB debugging**.
+3. Connect the phone to the Mac with a USB cable. On the phone, allow USB debugging for this computer.
+4. On the Mac, open `chrome://inspect/#devices` in Chrome.
+5. Find the tab of the app under the phone name. Click **inspect**.
+
+The DevTools window shows the phone console and a copy of the phone screen. Add `?debug` to the URL on the phone for the MIDI log.
+
+Note: the phone has one USB port. To debug with the keyboard connected, use **Wireless debugging** (Android 11 and later) in the developer options. Pair the phone with `adb pair`, then connect with `adb connect`. `adb` is in the Android SDK Platform Tools.
+
 ## For developers
 
 Requirements: Node 26 (managed by mise, see `mise.toml`). There are no npm dependencies.

@@ -11,9 +11,9 @@ import {
   createGame, configure, start, next, skip, replayTarget, guess, replayGuess, explore,
   resetStats, weakestNotes, topConfusions,
 } from './game.js';
-import { VOICES, ensureAudio, audioRunning, playNote, stopAll, setVoice } from './audio.js';
+import { VOICES, ensureAudio, audioReady, audioRunning, playNote, stopAll, setVoice } from './audio.js';
 import {
-  midiSupported, startMidi, noteOnBytes, noteOffBytes, controlChangeBytes,
+  midiSupported, startMidi, replacementPort, noteOnBytes, noteOffBytes, controlChangeBytes,
 } from './midi.js';
 import { pickLanguage, translate } from './i18n.js';
 import {
@@ -283,11 +283,21 @@ const onMidiStart = () => {
   $('start-gate').querySelector('p').textContent = t('midi.unlock');
 };
 
+// Android suspends the audio in the background. A MIDI message is not a user
+// gesture, but Chrome lets a page that had a gesture before resume its audio.
+const resumeAudio = () => {
+  if (audioReady() && !audioRunning()) ensureAudio().catch(() => {});
+};
+
 // Before the game, any MIDI key starts it.
 const onMidiNote = (m) => {
   if (!settings.midiEnabled) return;
-  if (game.phase === IDLE) onMidiStart();
-  else onPianoKey(m, { fromMidi: true });
+  if (game.phase === IDLE) {
+    onMidiStart();
+    return;
+  }
+  resumeAudio();
+  onPianoKey(m, { fromMidi: true });
 };
 
 // A held control key acts at its release.
@@ -315,10 +325,8 @@ const connectMidi = () => {
       hub.onNote(onMidiNote);
       hub.onNoteOff(onMidiNoteOff);
       hubHooks.forEach((fn) => fn(hub));
-      hub.onPorts(() => {
-        fillSettingsForm();
-        renderMidiStatus();
-      });
+      hub.onPorts(onMidiPorts);
+      adoptEz310Ports();
       fillSettingsForm();
       renderMidiStatus();
       render();
@@ -334,6 +342,26 @@ const EZ310_PORT = /digital keyboard|ez-?310/i;
 // The two lowest white keys of the EZ-310: C2 = Next, D2 = Play tone.
 const EZ310_NEXT_KEY = 36;
 const EZ310_REPLAY_KEY = 38;
+
+// A stored EZ-310 port id can be stale after a reconnect. Then use the
+// connected port with the EZ-310 name, and store its id.
+const adoptEz310Ports = () => {
+  if (!hub) return;
+  const s = settings;
+  const input = s.midiInput === MIDI_ALL_INPUTS ? null : replacementPort(s.midiInput, hub.inputs(), EZ310_PORT);
+  const output = s.midiOutput === MIDI_NO_OUTPUT ? null : replacementPort(s.midiOutput, hub.outputs(), EZ310_PORT);
+  if (input === null && output === null) return;
+  applySettings({ ...s, midiInput: input ?? s.midiInput, midiOutput: output ?? s.midiOutput });
+};
+
+// After a port change, the keyboard can have lost the light. Send it again.
+const onMidiPorts = () => {
+  adoptEz310Ports();
+  hub.clearLight();
+  syncMidiLight();
+  fillSettingsForm();
+  renderMidiStatus();
+};
 
 // One click: the MIDI settings that work with the EZ-310 (MIDI_EZ310.md).
 const onSetupEz310 = () => {
@@ -665,6 +693,9 @@ const setupGame = () => {
   document.addEventListener('keydown', onKeyDown);
   document.addEventListener('pointerdown', unlockAudio, true);
   document.addEventListener('keydown', unlockAudio, true);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') resumeAudio();
+  });
   setupSettings();
   setupResetStats();
   renderStats();

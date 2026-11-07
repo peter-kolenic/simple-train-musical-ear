@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  MIDI_ECHO_MS, parseMidiMessage, noteOnBytes, noteOffBytes, controlChangeBytes, createMidiHub,
+  MIDI_ECHO_MS, replacementPort, parseMidiMessage, noteOnBytes, noteOffBytes, controlChangeBytes, createMidiHub,
 } from '../src/midi.js';
 
 test('parseMidiMessage: note-on, note-off, velocity 0', () => {
@@ -157,4 +157,14 @@ test('hub: an echo of the lit note is ignored for a short time only', () => {
   tick(MIDI_ECHO_MS);
   f.press('in1', [0x90, 64, 80]); // a real key press later
   assert.deepEqual(notes, [65, 64]);
+});
+
+test('replacementPort: a stale id gives the matching port; a connected id gives null', () => {
+  const ports = [{ id: 'x1', name: 'Other' }, { id: 'k2', name: 'Digital Keyboard' }];
+  const ez = /digital keyboard|ez-?310/i;
+  assert.equal(replacementPort('k1', ports, ez), 'k2');
+  assert.equal(replacementPort('k2', ports, ez), null);
+  assert.equal(replacementPort('x1', ports, ez), null);
+  assert.equal(replacementPort('k1', [{ id: 'x1', name: 'Other' }], ez), null);
+  assert.equal(replacementPort('k1', [], ez), null);
 });

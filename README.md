@@ -71,9 +71,10 @@ MIDI settings:
 - **A guess from MIDI**: the keyboard makes its own sound, so the app does not play the note again (default). Select **Also play it in the app** if the keyboard does not make a sound, for example when Local Control (Function 044) is Off.
 - **Light the correct key** (experimental): after a wrong answer, the app sends the correct note to the keyboard. On the EZ-310, this can light the key until you click **Next**. Set **Light output** to the keyboard. **Light channel** must agree with Function 042 or 043 (Light Part 1 or 2, default channels 1 and 2). Function 041 (Light Guide) must be On.
 
-Notes on the EZ-310 (from the manual, not tested yet):
+Notes on the EZ-310:
 
-- The keyboard can also play the light note as a sound. This is not tested yet.
+- The light is silent. Tested on light channel 1 with the default functions 041–043.
+- The keyboard shows as "Digital Keyboard" in the MIDI lists.
 - Yamaha calls middle C "C3". The app calls it "C4". The key is the same.
 
 If **MIDI** shows "This browser has no Web MIDI" or MIDI does not start when you open the file directly, serve the folder on localhost:

@@ -118,7 +118,10 @@
   #debug { margin-top: 24px; padding: 12px 16px; border: 1px dashed var(--muted); border-radius: 8px; }
   #debug h2 { font-size: 1.1rem; margin: 0 0 8px; }
   #debug .row { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; align-items: center; }
-  #debug button { padding: 4px 10px; min-width: 3em; }
+  #debug button {
+    padding: 4px 10px; min-width: 3em; border-radius: 6px;
+    background: var(--panel); border: 1px solid var(--border);
+  }
   #debug pre { font: 0.8rem ui-monospace, Consolas, monospace; margin: 8px 0; min-height: 1.5em; white-space: pre-wrap; }
   details.panel h3 { font-size: 1rem; margin: 16px 0 0; }
 </style>
@@ -233,7 +236,7 @@
     <div class="row" id="debug-notes"></div>
     <div class="row" id="debug-extra"></div>
     <h2>MIDI debug</h2>
-    <p class="muted">Turn MIDI on, and select the light output and channel in Settings. The buttons send to that output and channel. The log shows the last messages from all inputs.</p>
+    <p class="muted">Turn MIDI on, and select the light output and channel in Settings. The buttons send to that output and channel. The log shows the last messages from all inputs, except clock (F8) and Active Sensing (FE).</p>
     <div class="row" id="debug-midi"><span id="debug-midi-state" class="muted"></span></div>
     <pre id="debug-midi-log"></pre>
   </section>

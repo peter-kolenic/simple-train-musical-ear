@@ -117,6 +117,17 @@ test('hub: light holds one note; a new light or clearLight sends the note-off', 
   ]);
 });
 
+test('hub: allNotesOff sends CC 123 and forgets the lit note on that channel', () => {
+  const { f, hub } = setup();
+  hub.light('out1', 64, { channel: 1 });
+  assert.equal(hub.allNotesOff('out1', 2), true);
+  assert.equal(hub.litNote(), 64); // other channel: still lit
+  hub.allNotesOff('out1', 1);
+  assert.equal(hub.litNote(), null);
+  assert.deepEqual(f.sent.slice(1), [['out1', [0xb1, 123, 0]], ['out1', [0xb0, 123, 0]]]);
+  assert.equal(hub.allNotesOff('gone', 1), false);
+});
+
 test('hub: light on a missing output does nothing', () => {
   const { f, hub } = setup();
   assert.equal(hub.light('gone', 64), false);

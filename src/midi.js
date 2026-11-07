@@ -74,6 +74,13 @@ export const createMidiHub = (access, { now = () => Date.now() } = {}) => {
     return true;
   };
 
+  // All Notes Off (CC 123) also clears a light that the hub does not know,
+  // for example one from a ?debug test.
+  const allNotesOff = (outputId, channel) => {
+    if (lit && lit.outputId === outputId && lit.channel === channel) lit = null;
+    return send(outputId, controlChangeBytes(123, 0, channel));
+  };
+
   return {
     inputs: () => portList(access.inputs),
     outputs: () => portList(access.outputs),
@@ -86,6 +93,7 @@ export const createMidiHub = (access, { now = () => Date.now() } = {}) => {
     send,
     light,
     clearLight,
+    allNotesOff,
     litNote: () => (lit ? lit.note : null),
     litKey: () => (lit ? `${lit.outputId}|${lit.channel}|${lit.note}` : null),
   };

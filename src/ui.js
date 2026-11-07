@@ -23,10 +23,12 @@ const KEY_FLASH_MS = 150;
 const RESET_ARM_MS = 4000;
 const STATS_ROWS = 5;
 const BLACK_KEY_WIDTH = 0.6; // fraction of a white key
-// Experimental. Velocity 1 is the quietest note-on. Not known: does it light
-// the key without a sound on the EZ-310? Check with the ?debug buttons.
+// Velocity 1 lights the key on the EZ-310 and makes no sound (tested).
 const MIDI_LIGHT_VELOCITY = 1;
 const MIDI_LOG_ROWS = 12;
+// The EZ-310 sends clock (F8) and Active Sensing (FE) all the time.
+// The log hides them, so that the key messages stay visible.
+const MIDI_LOG_HIDDEN = [0xf8, 0xfe];
 
 const $ = (id) => document.getElementById(id);
 
@@ -76,6 +78,7 @@ const dispatch = (action, arg, { stopFirst = true, mute = null } = {}) => {
   const statsChanged = state.stats !== game.stats;
   game = state;
   if (stopFirst) stopAll();
+  if (action === start || action === next || action === skip) clearMidiLights();
   runEffects(effects, mute);
   if (statsChanged) {
     saveJSON(STATS_KEY, game.stats);
@@ -182,6 +185,13 @@ const syncMidiLight = () => {
   if (key === hub.litKey()) return;
   if (w) hub.light(w.outputId, w.note, { channel: w.channel, velocity: MIDI_LIGHT_VELOCITY });
   else hub.clearLight();
+};
+
+// A new round starts with no lit keys on the light channel.
+const clearMidiLights = () => {
+  if (!hub || !settings.midiEnabled || settings.midiOutput === MIDI_NO_OUTPUT) return;
+  hub.clearLight();
+  hub.allNotesOff(settings.midiOutput, settings.midiLightChannel);
 };
 
 const portNames = (ports) => ports.map((p) => p.name).join(', ') || 'none';
@@ -472,7 +482,7 @@ const setupGame = () => {
   applyMidiSettings();
   // Turn off a lit key when the page closes.
   window.addEventListener('pagehide', () => {
-    if (hub) hub.clearLight();
+    clearMidiLights();
   });
   render();
 };
@@ -560,6 +570,7 @@ const setupMidiDebug = () => {
   const lines = [];
   const state = $('debug-midi-state');
   hubHooks.push((h) => h.onMessage((msg, portId, data) => {
+    if (MIDI_LOG_HIDDEN.includes(data[0])) return;
     const port = h.inputs().find((p) => p.id === portId);
     lines.unshift(`${port ? port.name : portId}: ${hex(data)}  ${describeMidi(msg)}`);
     lines.length = Math.min(lines.length, MIDI_LOG_ROWS);

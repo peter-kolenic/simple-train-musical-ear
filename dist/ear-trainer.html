@@ -136,6 +136,10 @@
   #start-row { align-items: center; }
   #midi-preset-state { text-align: center; margin: 0; }
   #midi-preset-state:empty { display: none; }
+  #landscape {
+    padding: 6px 12px; border-radius: 8px; font-size: 0.95rem;
+    background: var(--panel); border: 1px solid var(--border);
+  }
   #rotate-hint { display: none; text-align: center; font-size: 0.9rem; margin: 0; }
 
   /* The keyboard scrolls by itself when the keys need more width than the screen.
@@ -159,6 +163,16 @@
     .controls #midi-ez310 { margin-left: 0; }
     .form-grid { grid-template-columns: minmax(0, max-content) minmax(0, 1fr); gap: 6px 10px; }
   }
+  /* Phone in landscape: little height. The keyboard gets about half of it. */
+  @media (max-height: 500px) and (orientation: landscape) {
+    body { padding: 8px 16px; }
+    h1 { font-size: 1.2rem; margin: 0; }
+    #banner { font-size: 1rem; padding: 6px 12px; min-height: 0; margin: 6px 0; }
+    .controls { margin: 6px 0; }
+    .controls button { padding: 8px 14px; font-size: 1rem; }
+    #keyboard-scroll { margin: 6px 0; }
+    #keyboard { height: max(140px, 48vh); }
+  }
   @media (max-width: 700px) and (orientation: portrait) {
     #rotate-hint { display: block; }
   }
@@ -169,6 +183,7 @@
   <header>
     <h1 data-i18n="app.title">Ear Trainer</h1>
     <span id="score" class="muted"></span>
+    <button type="button" id="landscape" hidden></button>
   </header>
   <p id="midi-preset-state" class="muted"></p>
   <noscript><p>This app needs JavaScript. / Táto aplikácia potrebuje JavaScript.</p></noscript>
@@ -876,6 +891,9 @@ const MESSAGES = {
     'ez310.missing': 'MIDI is on, but no EZ-310 is connected. Connect it by USB, then click again.',
     'keyboard.aria': 'Piano keyboard',
     'hint.rotate': 'Turn the phone for more keys.',
+    'btn.landscape': '⛶ Landscape',
+    'btn.exitFullscreen': '⛶ Exit full screen',
+    'landscape.error': 'Landscape does not start: {error}',
     'help': 'Shortcuts: {Space} play tone, {R} replay my guess, {Enter} or {N} next. Letter keys {letters} answer in the lowest octave. Add {Shift} for one octave higher.',
     'banner.question': 'Which note is this?',
     'banner.correct': 'Correct — {note}',
@@ -958,6 +976,9 @@ const MESSAGES = {
     'ez310.missing': 'MIDI je zapnuté, ale klávesnica EZ-310 nie je pripojená. Pripojte ju cez USB a kliknite znova.',
     'keyboard.aria': 'Klaviatúra',
     'hint.rotate': 'Otočte telefón, uvidíte viac klávesov.',
+    'btn.landscape': '⛶ Na šírku',
+    'btn.exitFullscreen': '⛶ Ukončiť celú obrazovku',
+    'landscape.error': 'Režim na šírku sa nespustil: {error}',
     'help': 'Skratky: {Space} prehrať tón, {R} znova môj tip, {Enter} alebo {N} ďalej. Písmená {letters} odpovedajú v najnižšej oktáve. So {Shift} o oktávu vyššie.',
     'banner.question': 'Ktorý tón to je?',
     'banner.correct': 'Správne — {note}',
@@ -1529,6 +1550,44 @@ const onMidiPorts = () => {
   renderMidiStatus();
 };
 
+// ---- landscape (phone) ----
+
+// Chrome on Android locks the orientation only in full screen. Desktop
+// browsers cannot lock it, so the button shows only on a touch screen.
+const canLockLandscape = () => {
+  try {
+    return typeof document.documentElement.requestFullscreen === 'function'
+      && typeof screen.orientation === 'object' && typeof screen.orientation.lock === 'function'
+      && window.matchMedia('(pointer: coarse)').matches;
+  } catch {
+    return false;
+  }
+};
+
+const renderLandscapeButton = () => {
+  const btn = $('landscape');
+  btn.hidden = !canLockLandscape();
+  btn.textContent = t(document.fullscreenElement ? 'btn.exitFullscreen' : 'btn.landscape');
+};
+
+// The status line under the title shows an error.
+const onLandscape = () => {
+  if (document.fullscreenElement) {
+    try {
+      screen.orientation.unlock();
+    } catch {
+      // Nothing is locked.
+    }
+    document.exitFullscreen().catch(() => {});
+    return;
+  }
+  document.documentElement.requestFullscreen({ navigationUI: 'hide' })
+    .then(() => screen.orientation.lock('landscape'))
+    .catch((err) => {
+      $('midi-preset-state').textContent = t('landscape.error', { error: err.message });
+    });
+};
+
 // One click: the MIDI settings that work with the EZ-310 (MIDI_EZ310.md).
 const onSetupEz310 = () => {
   const state = $('midi-preset-state');
@@ -1721,6 +1780,7 @@ const renderStaticText = () => {
     el.setAttribute('aria-label', t(el.dataset.i18nAria));
   });
   renderHelp();
+  renderLandscapeButton();
 };
 
 // ---- settings panel ----
@@ -1856,6 +1916,8 @@ const setupGame = () => {
   onButton('play-guess', onReplayGuess);
   onButton('next', onNext);
   onButton('midi-ez310', onSetupEz310);
+  onButton('landscape', onLandscape);
+  document.addEventListener('fullscreenchange', renderLandscapeButton);
   document.addEventListener('keydown', onKeyDown);
   document.addEventListener('pointerdown', unlockAudio, true);
   document.addEventListener('keydown', unlockAudio, true);

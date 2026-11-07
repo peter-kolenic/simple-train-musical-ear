@@ -363,6 +363,44 @@ const onMidiPorts = () => {
   renderMidiStatus();
 };
 
+// ---- landscape (phone) ----
+
+// Chrome on Android locks the orientation only in full screen. Desktop
+// browsers cannot lock it, so the button shows only on a touch screen.
+const canLockLandscape = () => {
+  try {
+    return typeof document.documentElement.requestFullscreen === 'function'
+      && typeof screen.orientation === 'object' && typeof screen.orientation.lock === 'function'
+      && window.matchMedia('(pointer: coarse)').matches;
+  } catch {
+    return false;
+  }
+};
+
+const renderLandscapeButton = () => {
+  const btn = $('landscape');
+  btn.hidden = !canLockLandscape();
+  btn.textContent = t(document.fullscreenElement ? 'btn.exitFullscreen' : 'btn.landscape');
+};
+
+// The status line under the title shows an error.
+const onLandscape = () => {
+  if (document.fullscreenElement) {
+    try {
+      screen.orientation.unlock();
+    } catch {
+      // Nothing is locked.
+    }
+    document.exitFullscreen().catch(() => {});
+    return;
+  }
+  document.documentElement.requestFullscreen({ navigationUI: 'hide' })
+    .then(() => screen.orientation.lock('landscape'))
+    .catch((err) => {
+      $('midi-preset-state').textContent = t('landscape.error', { error: err.message });
+    });
+};
+
 // One click: the MIDI settings that work with the EZ-310 (MIDI_EZ310.md).
 const onSetupEz310 = () => {
   const state = $('midi-preset-state');
@@ -555,6 +593,7 @@ const renderStaticText = () => {
     el.setAttribute('aria-label', t(el.dataset.i18nAria));
   });
   renderHelp();
+  renderLandscapeButton();
 };
 
 // ---- settings panel ----
@@ -690,6 +729,8 @@ const setupGame = () => {
   onButton('play-guess', onReplayGuess);
   onButton('next', onNext);
   onButton('midi-ez310', onSetupEz310);
+  onButton('landscape', onLandscape);
+  document.addEventListener('fullscreenchange', renderLandscapeButton);
   document.addEventListener('keydown', onKeyDown);
   document.addEventListener('pointerdown', unlockAudio, true);
   document.addEventListener('keydown', unlockAudio, true);

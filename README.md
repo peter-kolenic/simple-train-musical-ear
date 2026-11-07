@@ -114,7 +114,7 @@ Add `?debug` to the URL to show the MIDI debug section. It shows the last messag
 3. Tap **🎹 EZ-310**. Allow MIDI if Chrome asks.
 4. Tap **Start**.
 
-On a phone, the app shows large buttons and no shortcut help. On the first visit, the range is C4 to C5. Turn the phone to landscape for more keys. If the keys do not fit, the keyboard scrolls sideways.
+On a phone, the app shows large buttons and no shortcut help. On the first visit, the range is C4 to C5. Turn the phone to landscape for more keys. If the page does not turn, tap **⛶ Landscape** at the top right. This opens full screen in landscape. Tap it again, or use the back gesture, to close full screen. If the keys do not fit, the keyboard scrolls sideways.
 
 Android stops the sound when Chrome goes to the background. The app starts it again when the page shows again, or at the next tap or key.
 

@@ -136,6 +136,10 @@
   #start-row { align-items: center; }
   #midi-preset-state { text-align: center; margin: 0; }
   #midi-preset-state:empty { display: none; }
+  #landscape {
+    padding: 6px 12px; border-radius: 8px; font-size: 0.95rem;
+    background: var(--panel); border: 1px solid var(--border);
+  }
   #rotate-hint { display: none; text-align: center; font-size: 0.9rem; margin: 0; }
 
   /* The keyboard scrolls by itself when the keys need more width than the screen.
@@ -159,6 +163,16 @@
     .controls #midi-ez310 { margin-left: 0; }
     .form-grid { grid-template-columns: minmax(0, max-content) minmax(0, 1fr); gap: 6px 10px; }
   }
+  /* Phone in landscape: little height. The keyboard gets about half of it. */
+  @media (max-height: 500px) and (orientation: landscape) {
+    body { padding: 8px 16px; }
+    h1 { font-size: 1.2rem; margin: 0; }
+    #banner { font-size: 1rem; padding: 6px 12px; min-height: 0; margin: 6px 0; }
+    .controls { margin: 6px 0; }
+    .controls button { padding: 8px 14px; font-size: 1rem; }
+    #keyboard-scroll { margin: 6px 0; }
+    #keyboard { height: max(140px, 48vh); }
+  }
   @media (max-width: 700px) and (orientation: portrait) {
     #rotate-hint { display: block; }
   }
@@ -169,6 +183,7 @@
   <header>
     <h1 data-i18n="app.title">Ear Trainer</h1>
     <span id="score" class="muted"></span>
+    <button type="button" id="landscape" hidden></button>
   </header>
   <p id="midi-preset-state" class="muted"></p>
   <noscript><p>This app needs JavaScript. / Táto aplikácia potrebuje JavaScript.</p></noscript>

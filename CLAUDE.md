@@ -30,7 +30,7 @@ Each phase ends with an **Acceptance** list. Claude Code checks the automatable 
 | 3 — Audio engine | **Done.** 63 tests pass (19 new in `audio.test.js`). Measured in Chrome with `OfflineAudioContext`: A4 = 440 Hz, 5 ms attack, no hard clip with 15 notes. The by-ear check is still open. |
 | 4 — Playable UI | **Done.** 65 tests pass. Checked in Chrome on macOS: Start gate, mouse and keyboard guesses, explore, replays, Next, highlights, score. No console errors. The by-ear check is still open. |
 | 5 — Settings, stats, polish, delivery | **Done.** 76 tests pass. Build output is 38.8 KB, with no external URLs. Checked in Chrome on macOS: all settings, persistence after reload, broken stored data, stats, two-click reset, reference tone, no horizontal scroll. Not checked: Edge or Chrome on Windows, `file://` storage. |
-| 7 — Mobile (Android, GitHub Pages) | **Planned.** Waits for approval. See Phase 7 below. |
+| 7 — Mobile (Android, GitHub Pages) | **In progress.** Approved. 7.1 (hosting) done: https://peter-kolenic.github.io/simple-train-musical-ear/ from `.github/workflows/pages.yml`. |
 | 6 — MIDI (optional) | **Done in code.** 87 tests pass (11 new in `midi.test.js`). Build output is 51.9 KB. Checked in Chrome on macOS with a fake MIDI device: guess, explore, light on after a wrong answer, light off at Next, ch 10 ignored, persistence. Not checked: the EZ-310, `file://` on Windows, the key light. |
 
 ### Decisions made during implementation
@@ -250,7 +250,7 @@ Goal: play on an Android phone in Chrome, with the EZ-310 on a USB OTG cable. Th
 ## 5. Non-goals (v1)
 - Intervals, chords, scales, and rhythm.
 - Accounts, sync, and online leaderboards.
-- Mobile layout. It should not break on mobile, but it isn't optimized for it.
+- iOS. Safari has no Web MIDI. (The Android phone layout is Phase 7.)
 - Native Windows packaging. If ever needed later, the same HTML can be wrapped in Electron or Tauri.
 
 ---

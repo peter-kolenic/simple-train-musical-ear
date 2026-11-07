@@ -86,7 +86,7 @@ A browser starts the sound only after a click or a tap on the page. After you op
 
 **🎹 EZ-310** sets all MIDI settings below to the values that work with the EZ-310. For another keyboard, set **MIDI** to **On** and set the other MIDI settings yourself.
 
-MIDI settings:
+MIDI settings (they show only when **MIDI** is **On**):
 
 - **Input**: all inputs (default), or one device.
 - **A guess from MIDI**: the keyboard makes its own sound, so the app does not play the note again (default). Select **Also play it in the app** if the keyboard does not make a sound, for example when Local Control (Function 044) is Off.

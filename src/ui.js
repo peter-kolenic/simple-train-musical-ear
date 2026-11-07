@@ -471,6 +471,8 @@ const fillSettingsForm = () => {
   $('set-voice').value = s.voice;
   $('set-key-text').value = s.keyTextSize;
   $('set-midi').value = String(s.midiEnabled);
+  // The other MIDI settings show only when MIDI is on.
+  $('midi-details').hidden = !s.midiEnabled;
   $('set-midi-silent').value = String(s.midiSilentGuess);
   $('set-midi-light').value = String(s.midiLight);
   fillSelect($('set-midi-input'),

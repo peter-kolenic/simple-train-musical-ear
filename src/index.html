@@ -75,7 +75,7 @@
   .key {
     position: relative; overflow: hidden; padding: 0 0 8px; border-radius: 0 0 6px 6px;
     display: flex; align-items: flex-end; justify-content: center;
-    font-size: 0.85rem; transition: background-color 80ms;
+    font-size: calc(0.85rem * var(--key-text, 1)); transition: background-color 80ms;
   }
   .key.white {
     flex: 1 1 0; min-width: 0; background: var(--white-key); color: #333;
@@ -84,7 +84,7 @@
   .key.black {
     position: absolute; top: 0; height: 62%; z-index: 1;
     background: var(--black-key); color: #ccc; border: 1px solid #000;
-    font-size: 0.7rem;
+    font-size: calc(0.7rem * var(--key-text, 1));
   }
   .key.out { cursor: default; }
   .key.white.out { background: #c9c8c3; color: #777; }
@@ -182,6 +182,13 @@
         <option value="piano-ish">Soft piano</option>
         <option value="sine">Sine</option>
         <option value="triangle">Triangle</option>
+      </select>
+      <label for="set-key-text">Text on keys</label>
+      <select id="set-key-text">
+        <option value="small">Small</option>
+        <option value="normal">Normal</option>
+        <option value="large">Large</option>
+        <option value="xlarge">Very large</option>
       </select>
     </div>
     <h3>MIDI keyboard</h3>

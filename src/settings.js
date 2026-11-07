@@ -9,6 +9,8 @@ export const RANGE_MAX = 96; // C7
 export const REFERENCE_NOTES = [48, 60, 69, 72]; // C3, C4, A4, C5
 export const OCTAVE_MODES = ['exact', 'pitchClass'];
 export const NAME_STYLES = ['central', 'international'];
+// Text size on the piano keys: a factor of the base size.
+export const KEY_TEXT_SIZES = { small: 0.8, normal: 1, large: 1.3, xlarge: 1.6 };
 export const MIDI_ALL_INPUTS = 'all';
 export const MIDI_NO_OUTPUT = '';
 
@@ -21,6 +23,7 @@ export const DEFAULT_SETTINGS = {
   playTargetOnWrong: true,
   referenceNote: null,
   voice: 'piano-ish',
+  keyTextSize: 'normal',
   midiEnabled: false,
   midiInput: MIDI_ALL_INPUTS,
   midiSilentGuess: true, // the keyboard sounds by itself
@@ -57,6 +60,7 @@ export const normalizeSettings = (raw) => {
     playTargetOnWrong: bool(r.playTargetOnWrong, d.playTargetOnWrong),
     referenceNote: r.referenceNote === null ? null : oneOf(r.referenceNote, REFERENCE_NOTES, d.referenceNote),
     voice: oneOf(r.voice, VOICES, d.voice),
+    keyTextSize: oneOf(r.keyTextSize, Object.keys(KEY_TEXT_SIZES), d.keyTextSize),
     midiEnabled: bool(r.midiEnabled, d.midiEnabled),
     midiInput: validPortId(r.midiInput, d.midiInput) || d.midiInput,
     midiSilentGuess: bool(r.midiSilentGuess, d.midiSilentGuess),

@@ -75,7 +75,7 @@
   .key {
     position: relative; overflow: hidden; padding: 0 0 8px; border-radius: 0 0 6px 6px;
     display: flex; align-items: flex-end; justify-content: center;
-    font-size: 0.85rem; transition: background-color 80ms;
+    font-size: calc(0.85rem * var(--key-text, 1)); transition: background-color 80ms;
   }
   .key.white {
     flex: 1 1 0; min-width: 0; background: var(--white-key); color: #333;
@@ -84,7 +84,7 @@
   .key.black {
     position: absolute; top: 0; height: 62%; z-index: 1;
     background: var(--black-key); color: #ccc; border: 1px solid #000;
-    font-size: 0.7rem;
+    font-size: calc(0.7rem * var(--key-text, 1));
   }
   .key.out { cursor: default; }
   .key.white.out { background: #c9c8c3; color: #777; }
@@ -182,6 +182,13 @@
         <option value="piano-ish">Soft piano</option>
         <option value="sine">Sine</option>
         <option value="triangle">Triangle</option>
+      </select>
+      <label for="set-key-text">Text on keys</label>
+      <select id="set-key-text">
+        <option value="small">Small</option>
+        <option value="normal">Normal</option>
+        <option value="large">Large</option>
+        <option value="xlarge">Very large</option>
       </select>
     </div>
     <h3>MIDI keyboard</h3>
@@ -778,6 +785,8 @@ const RANGE_MAX = 96; // C7
 const REFERENCE_NOTES = [48, 60, 69, 72]; // C3, C4, A4, C5
 const OCTAVE_MODES = ['exact', 'pitchClass'];
 const NAME_STYLES = ['central', 'international'];
+// Text size on the piano keys: a factor of the base size.
+const KEY_TEXT_SIZES = { small: 0.8, normal: 1, large: 1.3, xlarge: 1.6 };
 const MIDI_ALL_INPUTS = 'all';
 const MIDI_NO_OUTPUT = '';
 
@@ -790,6 +799,7 @@ const DEFAULT_SETTINGS = {
   playTargetOnWrong: true,
   referenceNote: null,
   voice: 'piano-ish',
+  keyTextSize: 'normal',
   midiEnabled: false,
   midiInput: MIDI_ALL_INPUTS,
   midiSilentGuess: true, // the keyboard sounds by itself
@@ -826,6 +836,7 @@ const normalizeSettings = (raw) => {
     playTargetOnWrong: bool(r.playTargetOnWrong, d.playTargetOnWrong),
     referenceNote: r.referenceNote === null ? null : oneOf(r.referenceNote, REFERENCE_NOTES, d.referenceNote),
     voice: oneOf(r.voice, VOICES, d.voice),
+    keyTextSize: oneOf(r.keyTextSize, Object.keys(KEY_TEXT_SIZES), d.keyTextSize),
     midiEnabled: bool(r.midiEnabled, d.midiEnabled),
     midiInput: validPortId(r.midiInput, d.midiInput) || d.midiInput,
     midiSilentGuess: bool(r.midiSilentGuess, d.midiSilentGuess),
@@ -1127,6 +1138,7 @@ const renderStats = () => {
 const buildKeyboard = () => {
   const kb = $('keyboard');
   kb.textContent = '';
+  kb.style.setProperty('--key-text', String(KEY_TEXT_SIZES[settings.keyTextSize]));
   keyEls.clear();
   const all = buildNoteSet({ low: settings.low, high: settings.high, whiteOnly: false });
   const whites = all.filter((m) => !isBlack(m));
@@ -1229,6 +1241,7 @@ const fillSettingsForm = () => {
   $('set-names').value = s.nameStyle;
   $('set-wrong').value = String(s.playTargetOnWrong);
   $('set-voice').value = s.voice;
+  $('set-key-text').value = s.keyTextSize;
   $('set-midi').value = String(s.midiEnabled);
   $('set-midi-silent').value = String(s.midiSilentGuess);
   $('set-midi-light').value = String(s.midiLight);
@@ -1249,6 +1262,7 @@ const readSettingsForm = () => ({
   playTargetOnWrong: $('set-wrong').value === 'true',
   referenceNote: $('set-reference').value === 'off' ? null : Number($('set-reference').value),
   voice: $('set-voice').value,
+  keyTextSize: $('set-key-text').value,
   midiEnabled: $('set-midi').value === 'true',
   midiInput: $('set-midi-input').value,
   midiSilentGuess: $('set-midi-silent').value === 'true',

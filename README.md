@@ -49,6 +49,7 @@ Open **Settings** under the keyboard.
 - **After a wrong answer**: also play the correct note (default), or play only your guess.
 - **Reference tone**: play C3, C4, A4, or C5 before each tone. This trains relative pitch. The default is off.
 - **Sound**: soft piano (default), sine, or triangle.
+- **Text on keys**: small, normal (default), large, or very large.
 
 - **MIDI keyboard**: see the next section.
 

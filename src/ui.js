@@ -13,7 +13,7 @@ import {
 import { VOICES, ensureAudio, playNote, stopAll, setVoice } from './audio.js';
 import { midiSupported, startMidi, noteOnBytes, noteOffBytes, controlChangeBytes } from './midi.js';
 import {
-  REFERENCE_NOTES, MIDI_ALL_INPUTS, MIDI_NO_OUTPUT,
+  REFERENCE_NOTES, KEY_TEXT_SIZES, MIDI_ALL_INPUTS, MIDI_NO_OUTPUT,
   rangeEndpoints, normalizeSettings, normalizeStats, gameConfig,
 } from './settings.js';
 
@@ -273,6 +273,7 @@ const renderStats = () => {
 const buildKeyboard = () => {
   const kb = $('keyboard');
   kb.textContent = '';
+  kb.style.setProperty('--key-text', String(KEY_TEXT_SIZES[settings.keyTextSize]));
   keyEls.clear();
   const all = buildNoteSet({ low: settings.low, high: settings.high, whiteOnly: false });
   const whites = all.filter((m) => !isBlack(m));
@@ -375,6 +376,7 @@ const fillSettingsForm = () => {
   $('set-names').value = s.nameStyle;
   $('set-wrong').value = String(s.playTargetOnWrong);
   $('set-voice').value = s.voice;
+  $('set-key-text').value = s.keyTextSize;
   $('set-midi').value = String(s.midiEnabled);
   $('set-midi-silent').value = String(s.midiSilentGuess);
   $('set-midi-light').value = String(s.midiLight);
@@ -395,6 +397,7 @@ const readSettingsForm = () => ({
   playTargetOnWrong: $('set-wrong').value === 'true',
   referenceNote: $('set-reference').value === 'off' ? null : Number($('set-reference').value),
   voice: $('set-voice').value,
+  keyTextSize: $('set-key-text').value,
   midiEnabled: $('set-midi').value === 'true',
   midiInput: $('set-midi-input').value,
   midiSilentGuess: $('set-midi-silent').value === 'true',

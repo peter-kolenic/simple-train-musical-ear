@@ -16,11 +16,18 @@ test('normalizeSettings: bad input gives the defaults', () => {
 test('normalizeSettings keeps valid fields', () => {
   const s = {
     low: 48, high: 72, whiteOnly: false, octaveMode: 'pitchClass', nameStyle: 'international',
-    playTargetOnWrong: false, referenceNote: 69, voice: 'sine',
+    playTargetOnWrong: false, referenceNote: 69, voice: 'sine', keyTextSize: 'xlarge',
     midiEnabled: true, midiInput: 'port-a', midiSilentGuess: false, midiLight: true,
     midiOutput: 'port-b', midiLightChannel: 16,
   };
   assert.deepEqual(normalizeSettings(s), s);
+});
+
+test('normalizeSettings: key text size', () => {
+  assert.equal(DEFAULT_SETTINGS.keyTextSize, 'normal');
+  assert.equal(normalizeSettings({ keyTextSize: 'large' }).keyTextSize, 'large');
+  assert.equal(normalizeSettings({ keyTextSize: 'huge' }).keyTextSize, 'normal');
+  assert.equal(normalizeSettings({ keyTextSize: 1.3 }).keyTextSize, 'normal');
 });
 
 test('normalizeSettings: MIDI fields', () => {

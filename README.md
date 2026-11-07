@@ -2,6 +2,10 @@
 
 A pitch-identification game in one HTML file. The app plays a tone. You find the tone on the on-screen piano keyboard. The app needs no installer, no server, and no network.
 
+## Online
+
+Open https://peter-kolenic.github.io/simple-train-musical-ear/ in Chrome or Edge. This works on Android too, with Chrome. Each push to `main` publishes the page again (`.github/workflows/pages.yml`). Settings and stats are stored for each address, so the online page and the local file have separate copies.
+
 ## Use the app on Windows 10
 
 1. Copy `dist/ear-trainer.html` to the Windows computer. Use a USB stick, Google Drive, or email.

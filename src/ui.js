@@ -28,6 +28,11 @@ const RESET_ARM_MS = 4000;
 // A MIDI control key acts at its note-off, after this delay. The keyboard
 // sounds the key by itself, and its sound must stop before the target plays.
 const MIDI_CONTROL_DELAY_MS = 250;
+// A control key acts after this time also with no note-off, in case the note-off is lost.
+const MIDI_CONTROL_HOLD_MS = 1500;
+// After a MIDI key, the audio has this time to start again. Then the banner asks for a tap.
+const AUDIO_RESUME_MS = 300;
+const REJECT_FLASH_MS = 700;
 const STATS_ROWS = 5;
 const BLACK_KEY_WIDTH = 0.6; // fraction of a white key
 // Velocity 1 lights the key on the EZ-310 and makes no sound (tested).
@@ -94,6 +99,9 @@ let game = createGame({ ...gameConfig(settings), stats: normalizeStats(loadJSON(
 const keyEls = new Map(); // midi -> key element
 let hub = null; // the MIDI hub, after startMidi() succeeds
 let midiStatus = '';
+// A short message in the banner in place of the normal text: {key, params}.
+// Any game action removes it.
+let bannerHint = null;
 const hubHooks = []; // run once, when the hub starts
 
 const language = () =>
@@ -120,6 +128,7 @@ const dispatch = (action, arg, { stopFirst = true, mute = null } = {}) => {
   const { state, effects } = action(game, arg);
   const statsChanged = state.stats !== game.stats;
   game = state;
+  bannerHint = null;
   if (stopFirst) stopAll();
   if (action === start || action === next || action === skip) clearMidiLights();
   runEffects(effects, mute);
@@ -158,20 +167,53 @@ const runControl = (control) => {
   else onReplayTarget();
 };
 
-// MIDI control keys pressed and not yet released.
-const heldControls = new Set();
+// MIDI control keys pressed and not yet released: note -> fallback timer.
+const heldControls = new Map();
+
+// A control key acts at its note-off. If no note-off comes, it acts after MIDI_CONTROL_HOLD_MS.
+const holdControl = (m) => {
+  clearTimeout(heldControls.get(m));
+  heldControls.set(m, setTimeout(() => {
+    heldControls.delete(m);
+    const control = controlAction(settings, m);
+    if (control && game.phase !== IDLE) runControl(control);
+  }, MIDI_CONTROL_HOLD_MS));
+};
+
+// The full name of a note, also for a note outside the range.
+const fullName = (m) => noteName(m, { style: settings.nameStyle, showOctave: true });
+
+// A key that is not in the game, before the answer: a hint, and the keyboard frame flashes.
+const rejectKey = (m) => {
+  bannerHint = {
+    key: 'hint.notInSet',
+    params: {
+      note: fullName(m), low: fullName(settings.low), high: fullName(settings.high),
+      notes: t(settings.whiteOnly ? 'hint.whiteKeys' : 'hint.allNotes'),
+    },
+  };
+  const frame = $('keyboard-scroll');
+  frame.classList.remove('reject');
+  void frame.offsetWidth; // start the animation again
+  frame.classList.add('reject');
+  setTimeout(() => frame.classList.remove('reject'), REJECT_FLASH_MS);
+  render();
+};
 
 const onPianoKey = (m, { fromMidi = false } = {}) => {
   const control = controlAction(settings, m);
   if (control) {
     flash(m);
-    if (fromMidi) heldControls.add(m);
+    if (fromMidi) holdControl(m);
     else runControl(control);
     return;
   }
   const mute = fromMidi && settings.midiSilentGuess ? m : null;
   if (game.phase === AWAITING_GUESS) {
-    if (!inSet(m)) return; // dimmed keys do not guess
+    if (!inSet(m)) {
+      rejectKey(m); // dimmed keys and keys outside the range do not guess
+      return;
+    }
     flash(m);
     dispatch(guess, m, { mute });
   } else if (game.phase === ANSWERED) {
@@ -216,7 +258,7 @@ const render = () => {
     ? t('score', { correct: session.correct, total: session.total, streak: session.streak })
     : '';
 
-  const [cls, text] = bannerText(game);
+  const [cls, text] = bannerHint ? ['hint', t(bannerHint.key, bannerHint.params)] : bannerText(game);
   const banner = $('banner');
   banner.className = cls;
   banner.textContent = text;
@@ -289,6 +331,17 @@ const resumeAudio = () => {
   if (audioReady() && !audioRunning()) ensureAudio().catch(() => {});
 };
 
+// If the audio does not start again after a MIDI key, ask for a tap.
+const checkAudioAfterMidi = () => {
+  if (audioRunning()) return;
+  resumeAudio();
+  setTimeout(() => {
+    if (audioRunning() || game.phase === IDLE) return;
+    bannerHint = { key: 'hint.tapForSound', params: {} };
+    render();
+  }, AUDIO_RESUME_MS);
+};
+
 // Before the game, any MIDI key starts it.
 const onMidiNote = (m) => {
   if (!settings.midiEnabled) return;
@@ -296,20 +349,31 @@ const onMidiNote = (m) => {
     onMidiStart();
     return;
   }
-  resumeAudio();
+  checkAudioAfterMidi();
   onPianoKey(m, { fromMidi: true });
 };
 
 // A held control key acts at its release.
 const onMidiNoteOff = (m) => {
-  if (!heldControls.delete(m)) return;
+  if (!heldControls.has(m)) return;
+  clearTimeout(heldControls.get(m));
+  heldControls.delete(m);
   const control = controlAction(settings, m);
   if (control && game.phase !== IDLE) setTimeout(() => runControl(control), MIDI_CONTROL_DELAY_MS);
 };
 
 // Any gesture on the page starts the audio context, so that MIDI can start the game later.
+// The tap-for-sound hint goes away when the audio runs.
 const unlockAudio = () => {
-  if (!audioRunning()) ensureAudio().catch(() => {});
+  if (audioRunning()) return;
+  ensureAudio()
+    .then(() => {
+      if (bannerHint && bannerHint.key === 'hint.tapForSound') {
+        bannerHint = null;
+        render();
+      }
+    })
+    .catch(() => {});
 };
 
 // The browser can show a permission prompt. Call it again to try again after an error.

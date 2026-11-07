@@ -58,6 +58,7 @@
   }
   #banner.ok { background: var(--ok-bg); border-color: var(--ok); color: var(--ok); }
   #banner.bad { background: var(--bad-bg); border-color: var(--bad); color: var(--bad); }
+  #banner.hint { border-color: var(--accent); color: var(--accent); }
 
   .controls { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin: 16px 0; }
   .controls button {
@@ -144,7 +145,13 @@
 
   /* The keyboard scrolls by itself when the keys need more width than the screen.
      --whites (set by ui.js) is the number of white keys. */
-  #keyboard-scroll { overflow-x: auto; margin: 16px 0; }
+  #keyboard-scroll { overflow-x: auto; margin: 16px 0; outline: 3px solid transparent; outline-offset: 2px; }
+  /* A key that is not in the game: the frame around the keyboard flashes. */
+  #keyboard-scroll.reject { animation: reject 700ms ease-out; }
+  @keyframes reject {
+    0%, 50% { outline-color: var(--bad); background: var(--bad-bg); }
+    100% { outline-color: transparent; background: transparent; }
+  }
   #keyboard-scroll #keyboard { margin: 0; }
 
   /* Phone: a narrow screen or a touch screen. */

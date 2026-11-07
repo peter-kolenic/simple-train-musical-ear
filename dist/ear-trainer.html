@@ -90,6 +90,12 @@
   .key.white.out { background: #c9c8c3; color: #777; }
   .key.black.out { background: #55555b; color: #999; }
   .key.down { filter: brightness(0.82); }
+  /* A control key: a button on the keyboard. Vertical text with the button name. */
+  .key.control {
+    background: var(--accent); color: #fff; cursor: pointer;
+    writing-mode: vertical-rl; justify-content: flex-end; align-items: center;
+    padding: 8px 0; white-space: nowrap; font-weight: 600;
+  }
   .key.correct { background: var(--ok) !important; color: #fff !important; box-shadow: 0 0 14px var(--ok); }
   .key.wrong { background: var(--bad) !important; color: #fff !important; box-shadow: 0 0 14px var(--bad); }
 
@@ -224,6 +230,8 @@
       </select>
       <label for="set-midi-output">Light output</label> <select id="set-midi-output"></select>
       <label for="set-midi-channel">Light channel</label> <select id="set-midi-channel"></select>
+      <label for="set-midi-next-key">Key for Next</label> <select id="set-midi-next-key"></select>
+      <label for="set-midi-replay-key">Key for Play tone</label> <select id="set-midi-replay-key"></select>
     </div>
     <p class="muted" id="midi-status"></p>
     <p class="muted" id="settings-note">Changes apply at once. If the current tone is outside the new range or note set, a new tone plays at once.</p>
@@ -658,6 +666,9 @@ const ensureAudio = () => {
 
 const audioReady = () => synth !== null;
 
+// True when the context plays sound. Without a user gesture it stays suspended.
+const audioRunning = () => audioCtx !== null && audioCtx.state === 'running';
+
 const playNote = (midi, opts) => {
   if (!synth) throw new Error('audio is not started: call ensureAudio() first');
   return synth.playNote(midi, opts);
@@ -827,6 +838,9 @@ const DEFAULT_SETTINGS = {
   midiLight: false, // experimental: light the correct key after a wrong answer
   midiOutput: MIDI_NO_OUTPUT,
   midiLightChannel: 1,
+  // Control keys: a key that acts as a button. null = none.
+  midiNextKey: null,
+  midiReplayKey: null,
 };
 
 // Range endpoints are white keys, so the keyboard starts and ends with a white key.
@@ -838,6 +852,7 @@ const bool = (v, fallback) => (typeof v === 'boolean' ? v : fallback);
 // A Web MIDI port id is a browser-made string. Any short string can be valid.
 const validPortId = (v, fallback) => (typeof v === 'string' && v.length <= 256 ? v : fallback);
 const validChannel = (v, fallback) => (Number.isInteger(v) && v >= 1 && v <= 16 ? v : fallback);
+const validKey = (v) => (Number.isInteger(v) && v >= 0 && v <= 127 ? v : null);
 const isObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 
 // Any input gives a valid settings object. Bad fields get the default value.
@@ -864,7 +879,22 @@ const normalizeSettings = (raw) => {
     midiLight: bool(r.midiLight, d.midiLight),
     midiOutput: validPortId(r.midiOutput, d.midiOutput),
     midiLightChannel: validChannel(r.midiLightChannel, d.midiLightChannel),
+    midiNextKey: validKey(r.midiNextKey),
+    // One key cannot have two actions. Next wins.
+    midiReplayKey: validKey(r.midiReplayKey) === validKey(r.midiNextKey) ? null : validKey(r.midiReplayKey),
   };
+};
+
+// The control keys in use: only with MIDI on.
+const controlKeys = (s) =>
+  (s.midiEnabled ? { next: s.midiNextKey, replay: s.midiReplayKey } : { next: null, replay: null });
+
+// 'next', 'replay', or null for a normal key.
+const controlAction = (s, note) => {
+  const k = controlKeys(s);
+  if (note === k.next) return 'next';
+  if (note === k.replay) return 'replay';
+  return null;
 };
 
 const count = (v) => Number.isInteger(v) && v >= 0;
@@ -885,7 +915,12 @@ const normalizeStats = (raw) => {
   return { notes, confusions };
 };
 
-const noteSetFor = ({ low, high, whiteOnly }) => buildNoteSet({ low, high, whiteOnly });
+// The control keys are never a target. If no note is left, the control keys stay in the set.
+const noteSetFor = (s) => {
+  const all = buildNoteSet({ low: s.low, high: s.high, whiteOnly: s.whiteOnly });
+  const rest = all.filter((m) => controlAction(s, m) === null);
+  return rest.length > 0 ? rest : all;
+};
 
 // The part of the settings that game.js uses.
 const gameConfig = (s) => ({
@@ -993,7 +1028,17 @@ const flash = (m) => {
 
 // A key press: the scored guess before the answer, free play after it.
 // fromMidi: the MIDI keyboard can sound the note by itself.
+// A control key acts as a button, on the screen and on the MIDI keyboard.
+const CONTROL_LABELS = { next: 'Next →', replay: '▶ Play tone' };
+
 const onPianoKey = (m, { fromMidi = false } = {}) => {
+  const control = controlAction(settings, m);
+  if (control) {
+    flash(m);
+    if (control === 'next') onNext();
+    else onReplayTarget();
+    return;
+  }
   const mute = fromMidi && settings.midiSilentGuess ? m : null;
   if (game.phase === AWAITING_GUESS) {
     if (!inSet(m)) return; // dimmed keys do not guess
@@ -1053,10 +1098,10 @@ const render = () => {
   keyEls.forEach((el, m) => {
     const isTarget = answered && m === result.target;
     const isGuess = answered && m === result.guess;
-    el.classList.toggle('out', !inSet(m));
+    el.classList.toggle('out', !inSet(m) && !controlAction(settings, m));
     el.classList.toggle('correct', isTarget || (isGuess && result.correct));
     el.classList.toggle('wrong', isGuess && !result.correct);
-    el.setAttribute('aria-disabled', String(phase === AWAITING_GUESS && !inSet(m)));
+    el.setAttribute('aria-disabled', String(phase === AWAITING_GUESS && !inSet(m) && !controlAction(settings, m)));
   });
   syncMidiLight();
 };
@@ -1098,8 +1143,27 @@ const renderMidiStatus = () => {
   $('midi-status').textContent = text;
 };
 
+// A MIDI message is not a user gesture, so it cannot start the audio. A tap or
+// click anywhere on the page starts it (unlockAudio). Then a MIDI key can start the game.
+const onMidiStart = () => {
+  if (audioRunning()) {
+    dispatch(start);
+    return;
+  }
+  $('start-gate').querySelector('p').textContent =
+    'Click or tap the page once to turn on the sound. Then press a key on the keyboard.';
+};
+
+// Before the game, any MIDI key starts it.
 const onMidiNote = (m) => {
-  if (settings.midiEnabled) onPianoKey(m, { fromMidi: true });
+  if (!settings.midiEnabled) return;
+  if (game.phase === IDLE) onMidiStart();
+  else onPianoKey(m, { fromMidi: true });
+};
+
+// Any gesture on the page starts the audio context, so that MIDI can start the game later.
+const unlockAudio = () => {
+  if (!audioRunning()) ensureAudio().catch(() => {});
 };
 
 // The browser can show a permission prompt. Call it again to try again after an error.
@@ -1130,6 +1194,9 @@ const connectMidi = () => {
 
 // The EZ-310 shows as "Digital Keyboard" in the port lists (tested).
 const EZ310_PORT = /digital keyboard|ez-?310/i;
+// The two lowest white keys of the EZ-310: C2 = Next, D2 = Play tone.
+const EZ310_NEXT_KEY = 36;
+const EZ310_REPLAY_KEY = 38;
 
 // One click: the MIDI settings that work with the EZ-310 (MIDI_EZ310.md).
 const onSetupEz310 = () => {
@@ -1141,6 +1208,7 @@ const onSetupEz310 = () => {
   state.textContent = 'Connecting…';
   applySettings({
     ...settings, midiEnabled: true, midiSilentGuess: true, midiLight: true, midiLightChannel: 1,
+    midiNextKey: EZ310_NEXT_KEY, midiReplayKey: EZ310_REPLAY_KEY,
   });
   startMidi()
     .then((h) => {
@@ -1219,9 +1287,17 @@ const buildKeyboard = () => {
     const el = document.createElement('div');
     el.className = `key ${black ? 'black' : 'white'}`;
     el.setAttribute('role', 'button');
-    el.setAttribute('aria-label', label(m));
-    // Show the octave only on C, so the keys stay easy to read.
-    el.textContent = noteName(m, { style: settings.nameStyle, showOctave: m % 12 === 0 });
+    const control = controlAction(settings, m);
+    if (control) {
+      // A control key shows the button that it replaces, as vertical text.
+      el.classList.add('control');
+      el.setAttribute('aria-label', CONTROL_LABELS[control]);
+      el.textContent = CONTROL_LABELS[control];
+    } else {
+      el.setAttribute('aria-label', label(m));
+      // Show the octave only on C, so the keys stay easy to read.
+      el.textContent = noteName(m, { style: settings.nameStyle, showOctave: m % 12 === 0 });
+    }
     if (black) {
       const below = whites.filter((x) => x < m).length;
       el.style.left = `${below * w - (w * BLACK_KEY_WIDTH) / 2}%`;
@@ -1322,7 +1398,14 @@ const fillSettingsForm = () => {
     portOptions(hub ? hub.outputs() : [], s.midiOutput, [MIDI_NO_OUTPUT, 'None']), s.midiOutput);
   fillSelect($('set-midi-channel'),
     Array.from({ length: 16 }, (_, i) => [i + 1, `Channel ${i + 1}`]), s.midiLightChannel);
+  const keyOptions = [['none', 'None'],
+    ...buildNoteSet({ low: RANGE_MIN, high: RANGE_MAX, whiteOnly: false }).map((m) => [m, name(m)])];
+  const keyValue = (k) => (k === null ? 'none' : k);
+  fillSelect($('set-midi-next-key'), keyOptions, keyValue(s.midiNextKey));
+  fillSelect($('set-midi-replay-key'), keyOptions, keyValue(s.midiReplayKey));
 };
+
+const keyFromForm = (id) => ($(id).value === 'none' ? null : Number($(id).value));
 
 const readSettingsForm = () => ({
   low: Number($('set-low').value),
@@ -1340,6 +1423,8 @@ const readSettingsForm = () => ({
   midiLight: $('set-midi-light').value === 'true',
   midiOutput: $('set-midi-output').value,
   midiLightChannel: Number($('set-midi-channel').value),
+  midiNextKey: keyFromForm('set-midi-next-key'),
+  midiReplayKey: keyFromForm('set-midi-replay-key'),
 });
 
 const applySettings = (raw) => {
@@ -1403,6 +1488,8 @@ const setupGame = () => {
   onButton('next', onNext);
   onButton('midi-ez310', onSetupEz310);
   document.addEventListener('keydown', onKeyDown);
+  document.addEventListener('pointerdown', unlockAudio, true);
+  document.addEventListener('keydown', unlockAudio, true);
   setupSettings();
   setupResetStats();
   renderStats();

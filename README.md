@@ -69,6 +69,21 @@ A key on the MIDI keyboard acts as a click on the screen keyboard. Before the an
 4. If the browser asks for permission to use MIDI devices, allow it.
 5. Make sure that the text under the title says "Done: Digital Keyboard on channel 1".
 
+Keys on the MIDI keyboard:
+
+| Key | Action |
+|---|---|
+| Any key, before the game | Start the game |
+| **Key for Next** | Next |
+| **Key for Play tone** | Play the tone again |
+| Any other key | Your guess, or free play after the answer |
+
+Set **Key for Next** and **Key for Play tone** in **Settings**. The default is none. **🎹 EZ-310** sets them to C2 and D2, the two lowest white keys of the EZ-310 (Yamaha calls C2 "C1"). These keys work only when MIDI is on.
+
+If the range includes a control key, the screen keyboard shows that key in blue with the button name. The app never plays that key as a tone. A click on it acts as the button. The keyboard also plays its own sound for the control keys.
+
+A browser starts the sound only after a click or a tap on the page. After you open the page, click **🎹 EZ-310** or tap the page once. Then a key on the keyboard can start the game.
+
 **🎹 EZ-310** sets all MIDI settings below to the values that work with the EZ-310. For another keyboard, set **MIDI** to **On** and set the other MIDI settings yourself.
 
 MIDI settings:

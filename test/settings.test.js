@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   DEFAULT_SETTINGS, RANGE_MIN, RANGE_MAX, rangeEndpoints,
-  normalizeSettings, normalizeStats, noteSetFor, gameConfig,
+  normalizeSettings, normalizeStats, noteSetFor, gameConfig, controlKeys, controlAction,
 } from '../src/settings.js';
 import { emptyStats } from '../src/game.js';
 import { isBlack } from '../src/music.js';
@@ -18,7 +18,7 @@ test('normalizeSettings keeps valid fields', () => {
     low: 48, high: 72, whiteOnly: false, octaveMode: 'pitchClass', nameStyle: 'international',
     playTargetOnWrong: false, referenceNote: 69, voice: 'sine', keyTextSize: 'xlarge',
     midiEnabled: true, midiInput: 'port-a', midiSilentGuess: false, midiLight: true,
-    midiOutput: 'port-b', midiLightChannel: 16,
+    midiOutput: 'port-b', midiLightChannel: 16, midiNextKey: 36, midiReplayKey: 38,
   };
   assert.deepEqual(normalizeSettings(s), s);
 });
@@ -28,6 +28,37 @@ test('normalizeSettings: key text size', () => {
   assert.equal(normalizeSettings({ keyTextSize: 'large' }).keyTextSize, 'large');
   assert.equal(normalizeSettings({ keyTextSize: 'huge' }).keyTextSize, 'normal');
   assert.equal(normalizeSettings({ keyTextSize: 1.3 }).keyTextSize, 'normal');
+});
+
+test('normalizeSettings: control keys', () => {
+  assert.equal(DEFAULT_SETTINGS.midiNextKey, null);
+  assert.equal(DEFAULT_SETTINGS.midiReplayKey, null);
+  const s = normalizeSettings({ midiNextKey: 128, midiReplayKey: 'x' });
+  assert.deepEqual([s.midiNextKey, s.midiReplayKey], [null, null]);
+  const same = normalizeSettings({ midiNextKey: 40, midiReplayKey: 40 });
+  assert.deepEqual([same.midiNextKey, same.midiReplayKey], [40, null]); // Next wins
+  assert.equal(normalizeSettings({ midiReplayKey: 0 }).midiReplayKey, 0);
+});
+
+test('controlKeys and controlAction work only with MIDI on', () => {
+  const on = { ...DEFAULT_SETTINGS, midiEnabled: true, midiNextKey: 36, midiReplayKey: 38 };
+  assert.deepEqual(controlKeys(on), { next: 36, replay: 38 });
+  assert.equal(controlAction(on, 36), 'next');
+  assert.equal(controlAction(on, 38), 'replay');
+  assert.equal(controlAction(on, 60), null);
+  assert.equal(controlAction({ ...on, midiEnabled: false }, 36), null);
+  assert.equal(controlAction(DEFAULT_SETTINGS, 60), null);
+});
+
+test('noteSetFor never includes the control keys', () => {
+  const s = { ...DEFAULT_SETTINGS, low: 36, high: 48, midiEnabled: true, midiNextKey: 36, midiReplayKey: 38 };
+  const set = noteSetFor(s);
+  assert.ok(!set.includes(36) && !set.includes(38));
+  assert.deepEqual(set, [40, 41, 43, 45, 47, 48]);
+  assert.deepEqual(gameConfig(s).noteSet, set);
+  assert.ok(noteSetFor({ ...s, midiEnabled: false }).includes(36)); // MIDI off: normal keys
+  // A range of only control keys keeps them, so the game still has notes.
+  assert.deepEqual(noteSetFor({ ...s, low: 36, high: 38 }), [36, 38]);
 });
 
 test('normalizeSettings: MIDI fields', () => {

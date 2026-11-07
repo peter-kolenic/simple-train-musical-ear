@@ -10,11 +10,13 @@ import {
   createGame, configure, start, next, skip, replayTarget, guess, replayGuess, explore,
   resetStats, weakestNotes, topConfusions,
 } from './game.js';
-import { VOICES, ensureAudio, playNote, stopAll, setVoice } from './audio.js';
-import { midiSupported, startMidi, noteOnBytes, noteOffBytes, controlChangeBytes } from './midi.js';
+import { VOICES, ensureAudio, audioRunning, playNote, stopAll, setVoice } from './audio.js';
 import {
-  REFERENCE_NOTES, KEY_TEXT_SIZES, MIDI_ALL_INPUTS, MIDI_NO_OUTPUT,
-  rangeEndpoints, normalizeSettings, normalizeStats, gameConfig,
+  midiSupported, startMidi, noteOnBytes, noteOffBytes, controlChangeBytes,
+} from './midi.js';
+import {
+  REFERENCE_NOTES, KEY_TEXT_SIZES, MIDI_ALL_INPUTS, MIDI_NO_OUTPUT, RANGE_MIN, RANGE_MAX,
+  controlAction, rangeEndpoints, normalizeSettings, normalizeStats, gameConfig,
 } from './settings.js';
 
 const SETTINGS_KEY = 'ear-trainer.settings.v1';
@@ -107,7 +109,17 @@ const flash = (m) => {
 
 // A key press: the scored guess before the answer, free play after it.
 // fromMidi: the MIDI keyboard can sound the note by itself.
+// A control key acts as a button, on the screen and on the MIDI keyboard.
+const CONTROL_LABELS = { next: 'Next →', replay: '▶ Play tone' };
+
 const onPianoKey = (m, { fromMidi = false } = {}) => {
+  const control = controlAction(settings, m);
+  if (control) {
+    flash(m);
+    if (control === 'next') onNext();
+    else onReplayTarget();
+    return;
+  }
   const mute = fromMidi && settings.midiSilentGuess ? m : null;
   if (game.phase === AWAITING_GUESS) {
     if (!inSet(m)) return; // dimmed keys do not guess
@@ -167,10 +179,10 @@ const render = () => {
   keyEls.forEach((el, m) => {
     const isTarget = answered && m === result.target;
     const isGuess = answered && m === result.guess;
-    el.classList.toggle('out', !inSet(m));
+    el.classList.toggle('out', !inSet(m) && !controlAction(settings, m));
     el.classList.toggle('correct', isTarget || (isGuess && result.correct));
     el.classList.toggle('wrong', isGuess && !result.correct);
-    el.setAttribute('aria-disabled', String(phase === AWAITING_GUESS && !inSet(m)));
+    el.setAttribute('aria-disabled', String(phase === AWAITING_GUESS && !inSet(m) && !controlAction(settings, m)));
   });
   syncMidiLight();
 };
@@ -212,8 +224,27 @@ const renderMidiStatus = () => {
   $('midi-status').textContent = text;
 };
 
+// A MIDI message is not a user gesture, so it cannot start the audio. A tap or
+// click anywhere on the page starts it (unlockAudio). Then a MIDI key can start the game.
+const onMidiStart = () => {
+  if (audioRunning()) {
+    dispatch(start);
+    return;
+  }
+  $('start-gate').querySelector('p').textContent =
+    'Click or tap the page once to turn on the sound. Then press a key on the keyboard.';
+};
+
+// Before the game, any MIDI key starts it.
 const onMidiNote = (m) => {
-  if (settings.midiEnabled) onPianoKey(m, { fromMidi: true });
+  if (!settings.midiEnabled) return;
+  if (game.phase === IDLE) onMidiStart();
+  else onPianoKey(m, { fromMidi: true });
+};
+
+// Any gesture on the page starts the audio context, so that MIDI can start the game later.
+const unlockAudio = () => {
+  if (!audioRunning()) ensureAudio().catch(() => {});
 };
 
 // The browser can show a permission prompt. Call it again to try again after an error.
@@ -244,6 +275,9 @@ const connectMidi = () => {
 
 // The EZ-310 shows as "Digital Keyboard" in the port lists (tested).
 const EZ310_PORT = /digital keyboard|ez-?310/i;
+// The two lowest white keys of the EZ-310: C2 = Next, D2 = Play tone.
+const EZ310_NEXT_KEY = 36;
+const EZ310_REPLAY_KEY = 38;
 
 // One click: the MIDI settings that work with the EZ-310 (MIDI_EZ310.md).
 const onSetupEz310 = () => {
@@ -255,6 +289,7 @@ const onSetupEz310 = () => {
   state.textContent = 'Connecting…';
   applySettings({
     ...settings, midiEnabled: true, midiSilentGuess: true, midiLight: true, midiLightChannel: 1,
+    midiNextKey: EZ310_NEXT_KEY, midiReplayKey: EZ310_REPLAY_KEY,
   });
   startMidi()
     .then((h) => {
@@ -333,9 +368,17 @@ const buildKeyboard = () => {
     const el = document.createElement('div');
     el.className = `key ${black ? 'black' : 'white'}`;
     el.setAttribute('role', 'button');
-    el.setAttribute('aria-label', label(m));
-    // Show the octave only on C, so the keys stay easy to read.
-    el.textContent = noteName(m, { style: settings.nameStyle, showOctave: m % 12 === 0 });
+    const control = controlAction(settings, m);
+    if (control) {
+      // A control key shows the button that it replaces, as vertical text.
+      el.classList.add('control');
+      el.setAttribute('aria-label', CONTROL_LABELS[control]);
+      el.textContent = CONTROL_LABELS[control];
+    } else {
+      el.setAttribute('aria-label', label(m));
+      // Show the octave only on C, so the keys stay easy to read.
+      el.textContent = noteName(m, { style: settings.nameStyle, showOctave: m % 12 === 0 });
+    }
     if (black) {
       const below = whites.filter((x) => x < m).length;
       el.style.left = `${below * w - (w * BLACK_KEY_WIDTH) / 2}%`;
@@ -436,7 +479,14 @@ const fillSettingsForm = () => {
     portOptions(hub ? hub.outputs() : [], s.midiOutput, [MIDI_NO_OUTPUT, 'None']), s.midiOutput);
   fillSelect($('set-midi-channel'),
     Array.from({ length: 16 }, (_, i) => [i + 1, `Channel ${i + 1}`]), s.midiLightChannel);
+  const keyOptions = [['none', 'None'],
+    ...buildNoteSet({ low: RANGE_MIN, high: RANGE_MAX, whiteOnly: false }).map((m) => [m, name(m)])];
+  const keyValue = (k) => (k === null ? 'none' : k);
+  fillSelect($('set-midi-next-key'), keyOptions, keyValue(s.midiNextKey));
+  fillSelect($('set-midi-replay-key'), keyOptions, keyValue(s.midiReplayKey));
 };
+
+const keyFromForm = (id) => ($(id).value === 'none' ? null : Number($(id).value));
 
 const readSettingsForm = () => ({
   low: Number($('set-low').value),
@@ -454,6 +504,8 @@ const readSettingsForm = () => ({
   midiLight: $('set-midi-light').value === 'true',
   midiOutput: $('set-midi-output').value,
   midiLightChannel: Number($('set-midi-channel').value),
+  midiNextKey: keyFromForm('set-midi-next-key'),
+  midiReplayKey: keyFromForm('set-midi-replay-key'),
 });
 
 const applySettings = (raw) => {
@@ -517,6 +569,8 @@ const setupGame = () => {
   onButton('next', onNext);
   onButton('midi-ez310', onSetupEz310);
   document.addEventListener('keydown', onKeyDown);
+  document.addEventListener('pointerdown', unlockAudio, true);
+  document.addEventListener('keydown', unlockAudio, true);
   setupSettings();
   setupResetStats();
   renderStats();

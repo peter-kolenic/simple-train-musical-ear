@@ -30,6 +30,9 @@ export const DEFAULT_SETTINGS = {
   midiLight: false, // experimental: light the correct key after a wrong answer
   midiOutput: MIDI_NO_OUTPUT,
   midiLightChannel: 1,
+  // Control keys: a key that acts as a button. null = none.
+  midiNextKey: null,
+  midiReplayKey: null,
 };
 
 // Range endpoints are white keys, so the keyboard starts and ends with a white key.
@@ -41,6 +44,7 @@ const bool = (v, fallback) => (typeof v === 'boolean' ? v : fallback);
 // A Web MIDI port id is a browser-made string. Any short string can be valid.
 const validPortId = (v, fallback) => (typeof v === 'string' && v.length <= 256 ? v : fallback);
 const validChannel = (v, fallback) => (Number.isInteger(v) && v >= 1 && v <= 16 ? v : fallback);
+const validKey = (v) => (Number.isInteger(v) && v >= 0 && v <= 127 ? v : null);
 const isObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 
 // Any input gives a valid settings object. Bad fields get the default value.
@@ -67,7 +71,22 @@ export const normalizeSettings = (raw) => {
     midiLight: bool(r.midiLight, d.midiLight),
     midiOutput: validPortId(r.midiOutput, d.midiOutput),
     midiLightChannel: validChannel(r.midiLightChannel, d.midiLightChannel),
+    midiNextKey: validKey(r.midiNextKey),
+    // One key cannot have two actions. Next wins.
+    midiReplayKey: validKey(r.midiReplayKey) === validKey(r.midiNextKey) ? null : validKey(r.midiReplayKey),
   };
+};
+
+// The control keys in use: only with MIDI on.
+export const controlKeys = (s) =>
+  (s.midiEnabled ? { next: s.midiNextKey, replay: s.midiReplayKey } : { next: null, replay: null });
+
+// 'next', 'replay', or null for a normal key.
+export const controlAction = (s, note) => {
+  const k = controlKeys(s);
+  if (note === k.next) return 'next';
+  if (note === k.replay) return 'replay';
+  return null;
 };
 
 const count = (v) => Number.isInteger(v) && v >= 0;
@@ -88,7 +107,12 @@ export const normalizeStats = (raw) => {
   return { notes, confusions };
 };
 
-export const noteSetFor = ({ low, high, whiteOnly }) => buildNoteSet({ low, high, whiteOnly });
+// The control keys are never a target. If no note is left, the control keys stay in the set.
+export const noteSetFor = (s) => {
+  const all = buildNoteSet({ low: s.low, high: s.high, whiteOnly: s.whiteOnly });
+  const rest = all.filter((m) => controlAction(s, m) === null);
+  return rest.length > 0 ? rest : all;
+};
 
 // The part of the settings that game.js uses.
 export const gameConfig = (s) => ({

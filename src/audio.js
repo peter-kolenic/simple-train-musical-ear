@@ -154,6 +154,9 @@ export const ensureAudio = () => {
 
 export const audioReady = () => synth !== null;
 
+// True when the context plays sound. Without a user gesture it stays suspended.
+export const audioRunning = () => audioCtx !== null && audioCtx.state === 'running';
+
 export const playNote = (midi, opts) => {
   if (!synth) throw new Error('audio is not started: call ensureAudio() first');
   return synth.playNote(midi, opts);

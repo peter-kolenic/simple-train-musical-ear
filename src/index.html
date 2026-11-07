@@ -90,6 +90,12 @@
   .key.white.out { background: #c9c8c3; color: #777; }
   .key.black.out { background: #55555b; color: #999; }
   .key.down { filter: brightness(0.82); }
+  /* A control key: a button on the keyboard. Vertical text with the button name. */
+  .key.control {
+    background: var(--accent); color: #fff; cursor: pointer;
+    writing-mode: vertical-rl; justify-content: flex-end; align-items: center;
+    padding: 8px 0; white-space: nowrap; font-weight: 600;
+  }
   .key.correct { background: var(--ok) !important; color: #fff !important; box-shadow: 0 0 14px var(--ok); }
   .key.wrong { background: var(--bad) !important; color: #fff !important; box-shadow: 0 0 14px var(--bad); }
 
@@ -224,6 +230,8 @@
       </select>
       <label for="set-midi-output">Light output</label> <select id="set-midi-output"></select>
       <label for="set-midi-channel">Light channel</label> <select id="set-midi-channel"></select>
+      <label for="set-midi-next-key">Key for Next</label> <select id="set-midi-next-key"></select>
+      <label for="set-midi-replay-key">Key for Play tone</label> <select id="set-midi-replay-key"></select>
     </div>
     <p class="muted" id="midi-status"></p>
     <p class="muted" id="settings-note">Changes apply at once. If the current tone is outside the new range or note set, a new tone plays at once.</p>

@@ -30,6 +30,7 @@ Each phase ends with an **Acceptance** list. Claude Code checks the automatable 
 | 3 — Audio engine | **Done.** 63 tests pass (19 new in `audio.test.js`). Measured in Chrome with `OfflineAudioContext`: A4 = 440 Hz, 5 ms attack, no hard clip with 15 notes. The by-ear check is still open. |
 | 4 — Playable UI | **Done.** 65 tests pass. Checked in Chrome on macOS: Start gate, mouse and keyboard guesses, explore, replays, Next, highlights, score. No console errors. The by-ear check is still open. |
 | 5 — Settings, stats, polish, delivery | **Done.** 76 tests pass. Build output is 38.8 KB, with no external URLs. Checked in Chrome on macOS: all settings, persistence after reload, broken stored data, stats, two-click reset, reference tone, no horizontal scroll. Not checked: Edge or Chrome on Windows, `file://` storage. |
+| 7 — Mobile (Android, GitHub Pages) | **Planned.** Waits for approval. See Phase 7 below. |
 | 6 — MIDI (optional) | **Done in code.** 87 tests pass (11 new in `midi.test.js`). Build output is 51.9 KB. Checked in Chrome on macOS with a fake MIDI device: guess, explore, light on after a wrong answer, light off at Next, ch 10 ignored, persistence. Not checked: the EZ-310, `file://` on Windows, the key light. |
 
 ### Decisions made during implementation
@@ -60,7 +61,7 @@ Each phase ends with an **Acceptance** list. Claude Code checks the automatable 
 - **MIDI guess:** a MIDI note-on goes through `onPianoKey(m, {fromMidi: true})`, the same path as a click. `midiSilentGuess` (default on) drops the immediate `play` effect of that note (`dispatch(..., {mute})`). The delayed target after a wrong answer still plays. MIDI does nothing in `IDLE`, because a MIDI message is not a user gesture for audio. Notes outside the on-screen range explore, but do not guess.
 - **MIDI light (experimental):** `render()` calls `syncMidiLight()`. A wrong answer holds a note-on (velocity `MIDI_LIGHT_VELOCITY` = 1; tested on the EZ-310: the key lights with no sound, and `8nH` turns it off) on `midiLightChannel` of `midiOutput`. Any change of state sends the note-off. `start`, `next`, `skip`, and `pagehide` also send All Notes Off (CC 123) on the light channel, which clears a light that the hub does not know (for example from a `?debug` test). An input note-on equal to the lit note within `MIDI_ECHO_MS` (150 ms) is ignored, in case the keyboard echoes it.
 - **EZ-310 facts** (from `../yamaha_ez-310/ez310_docs`, not verified): USB-MIDI is class compliant. Function 042/043 Light Part 1/2 (default ch 1/2) light keys for received MIDI. Function 041 Light Guide must be On. Function 044 Local Control Off mutes the keys. Yamaha calls MIDI 60 "C3".
-- **MIDI settings:** `midiEnabled` (default off; when on, the page connects at load), `midiInput` (`'all'`), `midiSilentGuess`, `midiLight`, `midiOutput` (`''` = none), `midiLightChannel` (1–16). A stored port that is not connected stays in the list as "Not connected".
+- **MIDI settings:** `midiEnabled` (default off; when on, the page connects at load), `midiInput` (`'all'`), `midiSilentGuess`, `midiLight`, `midiOutput` (`''` = none), `midiLightChannel` (1–16). A stored port that is not connected stays in the list as "Not connected". The button **Set up for EZ-310** (main screen, under the title) sets MIDI on, silent guess, light on, ch 1, and selects the input and output whose name matches `EZ310_PORT` (`/digital keyboard|ez-?310/i`).
 - **Node:** Node 26 (Active LTS) is managed by **mise** and pinned in `mise.toml`. Volta is unmaintained since 2025-11-14 and is no longer used. If `node` is not on `PATH` in a non-interactive shell, run `mise exec -- npm test`.
 
 ---
@@ -209,6 +210,42 @@ A plain sine wave is hard to place in a register and sounds artificial. Use a ch
 **Acceptance (human):** pressing a key on the EZ-310 answers the round.
 
 ---
+
+### Phase 7 — Mobile: Android phone, Chrome, GitHub Pages
+Goal: play on an Android phone in Chrome, with the EZ-310 on a USB OTG cable. The same file still works offline on Windows.
+
+**7.1 Hosting**
+- Create a GitHub repository. Push needs approval. GitHub Pages is free only for a public repository on a free plan.
+- Add `.github/workflows/pages.yml`: on push to `main`, run `npm test` and `npm run build`. Then publish `dist/` with `actions/upload-pages-artifact` and `actions/deploy-pages`. Copy `ear-trainer.html` to `index.html` in the artifact.
+- The page is HTTPS, so Web MIDI has a secure context.
+- localStorage on `github.io` is separate from `file://` and from localhost. Settings and stats do not move between them.
+
+**7.2 Phone layout** (CSS media queries, no new dependency)
+- Narrow screen (`max-width: 700px`) or touch (`pointer: coarse`):
+  - controls in one row of large buttons; banner text smaller;
+  - keys at least 36 px wide; `touch-action: manipulation` and `-webkit-touch-callout: none` on all buttons and keys;
+  - hide the keyboard-shortcut help and the letter-key text.
+- Portrait: show a hint "Turn the phone for more keys".
+- First visit on a narrow screen (no stored settings): default range C4–C5. Stored settings are not changed. `settings.js` stays pure: the UI passes the default.
+
+**7.3 Audio on Android**
+- Resume the `AudioContext` on each Start, Play, and key tap. Android suspends it when the app goes to the background (`visibilitychange`).
+- Test: Android can send the sound to the EZ-310 speakers when the cable is connected (USB audio). Record the result.
+
+**7.4 MIDI on Android**
+- When the stored port id is missing, but a port name matches `EZ310_PORT`, use that port. Port ids can change after a reconnect.
+- After a reconnect (`onstatechange`), set the light again if a light is wanted.
+
+**7.5 Debugging**
+- Document Chrome remote debugging: USB debugging on the phone, `chrome://inspect` on the Mac, the phone console.
+
+**7.6 Not in Phase 7**
+- PWA (manifest and service worker): it needs separate files. Do it later if you ask for it.
+- iOS: Safari has no Web MIDI.
+
+**Acceptance (human, on the phone):** the Pages URL opens in Chrome on Android. Start, a tap guess, and Next work. The 1-octave range fits with no horizontal scroll. The EZ-310 button connects. A key on the EZ-310 answers. The correct key lights after a wrong answer. A reload keeps the settings.
+
+**Acceptance (Claude):** tests pass. Chrome on macOS with a 390×844 viewport shows no horizontal scroll. `dist/ear-trainer.html` still opens as one file with no network requests.
 
 ## 5. Non-goals (v1)
 - Intervals, chords, scales, and rhythm.

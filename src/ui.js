@@ -234,6 +234,38 @@ const connectMidi = () => {
     });
 };
 
+// The EZ-310 shows as "Digital Keyboard" in the port lists (tested).
+const EZ310_PORT = /digital keyboard|ez-?310/i;
+
+// One click: the MIDI settings that work with the EZ-310 (MIDI_EZ310.md).
+const onSetupEz310 = () => {
+  const state = $('midi-preset-state');
+  if (!midiSupported()) {
+    state.textContent = 'This browser has no Web MIDI.';
+    return;
+  }
+  state.textContent = 'Connecting…';
+  applySettings({
+    ...settings, midiEnabled: true, midiSilentGuess: true, midiLight: true, midiLightChannel: 1,
+  });
+  startMidi()
+    .then((h) => {
+      const input = h.inputs().find((p) => EZ310_PORT.test(p.name));
+      const output = h.outputs().find((p) => EZ310_PORT.test(p.name));
+      applySettings({
+        ...settings,
+        midiInput: input ? input.id : MIDI_ALL_INPUTS,
+        midiOutput: output ? output.id : settings.midiOutput,
+      });
+      state.textContent = output
+        ? `Done: ${output.name} on channel 1.`
+        : 'MIDI is on, but no EZ-310 is connected. Connect it by USB, then click again.';
+    })
+    .catch((err) => {
+      state.textContent = `MIDI does not start: ${err.message}`;
+    });
+};
+
 const applyMidiSettings = () => {
   if (settings.midiEnabled) connectMidi();
   if (hub) hub.setInput(settings.midiInput);
@@ -475,6 +507,7 @@ const setupGame = () => {
   onButton('play-target', onReplayTarget);
   onButton('play-guess', onReplayGuess);
   onButton('next', onNext);
+  onButton('midi-ez310', onSetupEz310);
   document.addEventListener('keydown', onKeyDown);
   setupSettings();
   setupResetStats();

@@ -124,6 +124,11 @@
   }
   #debug pre { font: 0.8rem ui-monospace, Consolas, monospace; margin: 8px 0; min-height: 1.5em; white-space: pre-wrap; }
   details.panel h3 { font-size: 1rem; margin: 16px 0 0; }
+  .preset { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; margin: 8px 0; }
+  .preset button {
+    font-size: 1.15rem; padding: 12px 28px; border-radius: 10px;
+    background: var(--panel); border: 2px solid var(--accent);
+  }
 </style>
 </head>
 <body>
@@ -132,6 +137,10 @@
     <h1>Ear Trainer</h1>
     <span id="score" class="muted"></span>
   </header>
+  <div class="preset">
+    <button type="button" id="midi-ez310">🎹 Set up for EZ-310</button>
+    <span id="midi-preset-state" class="muted">Connect the keyboard by USB, then click. This turns MIDI on, selects the keyboard, and lights the correct key after a wrong answer.</span>
+  </div>
   <noscript><p>This app needs JavaScript.</p></noscript>
 
   <section id="start-gate">
@@ -1110,6 +1119,38 @@ const connectMidi = () => {
     });
 };
 
+// The EZ-310 shows as "Digital Keyboard" in the port lists (tested).
+const EZ310_PORT = /digital keyboard|ez-?310/i;
+
+// One click: the MIDI settings that work with the EZ-310 (MIDI_EZ310.md).
+const onSetupEz310 = () => {
+  const state = $('midi-preset-state');
+  if (!midiSupported()) {
+    state.textContent = 'This browser has no Web MIDI.';
+    return;
+  }
+  state.textContent = 'Connecting…';
+  applySettings({
+    ...settings, midiEnabled: true, midiSilentGuess: true, midiLight: true, midiLightChannel: 1,
+  });
+  startMidi()
+    .then((h) => {
+      const input = h.inputs().find((p) => EZ310_PORT.test(p.name));
+      const output = h.outputs().find((p) => EZ310_PORT.test(p.name));
+      applySettings({
+        ...settings,
+        midiInput: input ? input.id : MIDI_ALL_INPUTS,
+        midiOutput: output ? output.id : settings.midiOutput,
+      });
+      state.textContent = output
+        ? `Done: ${output.name} on channel 1.`
+        : 'MIDI is on, but no EZ-310 is connected. Connect it by USB, then click again.';
+    })
+    .catch((err) => {
+      state.textContent = `MIDI does not start: ${err.message}`;
+    });
+};
+
 const applyMidiSettings = () => {
   if (settings.midiEnabled) connectMidi();
   if (hub) hub.setInput(settings.midiInput);
@@ -1351,6 +1392,7 @@ const setupGame = () => {
   onButton('play-target', onReplayTarget);
   onButton('play-guess', onReplayGuess);
   onButton('next', onNext);
+  onButton('midi-ez310', onSetupEz310);
   document.addEventListener('keydown', onKeyDown);
   setupSettings();
   setupResetStats();

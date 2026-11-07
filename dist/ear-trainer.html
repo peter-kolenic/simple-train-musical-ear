@@ -141,17 +141,17 @@
 <body>
 <main>
   <header>
-    <h1>Ear Trainer</h1>
+    <h1 data-i18n="app.title">Ear Trainer</h1>
     <span id="score" class="muted"></span>
   </header>
   <p id="midi-preset-state" class="muted"></p>
-  <noscript><p>This app needs JavaScript.</p></noscript>
+  <noscript><p>This app needs JavaScript. / Táto aplikácia potrebuje JavaScript.</p></noscript>
 
   <section id="start-gate">
-    <p class="muted">Listen to a tone. Then find it on the keyboard.</p>
+    <p class="muted" data-i18n="start.intro">Listen to a tone. Then find it on the keyboard.</p>
     <div class="controls" id="start-row">
-      <button type="button" id="start">Start</button>
-      <button type="button" id="midi-ez310"
+      <button type="button" id="start" data-i18n="btn.start">Start</button>
+      <button type="button" id="midi-ez310" data-i18n-title="ez310.title"
         title="Connect the keyboard by USB, then click. This turns MIDI on, selects the keyboard, and lights the correct key after a wrong answer.">🎹 EZ-310</button>
     </div>
   </section>
@@ -159,91 +159,93 @@
   <section id="game" hidden>
     <div id="banner" role="status" aria-live="polite"></div>
     <div class="controls" id="game-row">
-      <button type="button" id="play-target">▶ Play tone<kbd>Space</kbd></button>
-      <button type="button" id="play-guess">▶ My guess<kbd>R</kbd></button>
-      <button type="button" id="next" class="primary">Next →<kbd>Enter</kbd></button>
+      <button type="button" id="play-target"><span data-i18n="btn.playTone">▶ Play tone</span><kbd>Space</kbd></button>
+      <button type="button" id="play-guess"><span data-i18n="btn.myGuess">▶ My guess</span><kbd>R</kbd></button>
+      <button type="button" id="next" class="primary"><span data-i18n="btn.next">Next →</span><kbd>Enter</kbd></button>
     </div>
-    <div id="keyboard" aria-label="Piano keyboard"></div>
-    <p id="help" class="muted">
-      Shortcuts: <kbd>Space</kbd> play tone, <kbd>R</kbd> replay my guess,
-      <kbd>Enter</kbd> or <kbd>N</kbd> next. Letter keys <span id="help-letters"></span> answer in the
-      lowest octave. Add <kbd>Shift</kbd> for one octave higher.
-    </p>
+    <div id="keyboard" data-i18n-aria="keyboard.aria" aria-label="Piano keyboard"></div>
+    <p id="help" class="muted"></p>
   </section>
 
   <details class="panel" id="settings-panel">
-    <summary>Settings</summary>
+    <summary data-i18n="settings.title">Settings</summary>
     <div class="form-grid">
-      <label for="set-low">Lowest note</label> <select id="set-low"></select>
-      <label for="set-high">Highest note</label> <select id="set-high"></select>
-      <label for="set-white">Notes</label>
+      <label for="set-language" data-i18n="set.language">Language</label>
+      <select id="set-language">
+        <option value="auto" data-i18n="lang.auto">Automatic (from the browser)</option>
+        <option value="en">English</option>
+        <option value="sk">Slovenčina</option>
+      </select>
+      <label for="set-low" data-i18n="set.low">Lowest note</label> <select id="set-low"></select>
+      <label for="set-high" data-i18n="set.high">Highest note</label> <select id="set-high"></select>
+      <label for="set-white" data-i18n="set.notes">Notes</label>
       <select id="set-white">
-        <option value="true">White keys only</option>
-        <option value="false">All 12 notes</option>
+        <option value="true" data-i18n="opt.whiteOnly">White keys only</option>
+        <option value="false" data-i18n="opt.all12">All 12 notes</option>
       </select>
-      <label for="set-octave">Octave</label>
+      <label for="set-octave" data-i18n="set.octave">Octave</label>
       <select id="set-octave">
-        <option value="exact">Exact octave must match</option>
-        <option value="pitchClass">Any octave is correct</option>
+        <option value="exact" data-i18n="opt.exact">Exact octave must match</option>
+        <option value="pitchClass" data-i18n="opt.anyOctave">Any octave is correct</option>
       </select>
-      <label for="set-names">Note names</label>
+      <label for="set-names" data-i18n="set.names">Note names</label>
       <select id="set-names">
-        <option value="central">Central European (C D E F G A H, B = B♭)</option>
-        <option value="international">International (C D E F G A B)</option>
+        <option value="central" data-i18n="opt.central">Central European (C D E F G A H, B = B♭)</option>
+        <option value="international" data-i18n="opt.international">International (C D E F G A B)</option>
       </select>
-      <label for="set-wrong">After a wrong answer</label>
+      <label for="set-wrong" data-i18n="set.wrong">After a wrong answer</label>
       <select id="set-wrong">
-        <option value="true">Also play the correct note</option>
-        <option value="false">Play only my guess</option>
+        <option value="true" data-i18n="opt.playCorrect">Also play the correct note</option>
+        <option value="false" data-i18n="opt.playGuessOnly">Play only my guess</option>
       </select>
-      <label for="set-reference">Reference tone</label> <select id="set-reference"></select>
-      <label for="set-voice">Sound</label>
+      <label for="set-reference" data-i18n="set.reference">Reference tone</label> <select id="set-reference"></select>
+      <label for="set-voice" data-i18n="set.voice">Sound</label>
       <select id="set-voice">
-        <option value="piano-ish">Soft piano</option>
-        <option value="sine">Sine</option>
-        <option value="triangle">Triangle</option>
+        <option value="piano-ish" data-i18n="opt.piano">Soft piano</option>
+        <option value="sine" data-i18n="opt.sine">Sine</option>
+        <option value="triangle" data-i18n="opt.triangle">Triangle</option>
       </select>
-      <label for="set-key-text">Text on keys</label>
+      <label for="set-key-text" data-i18n="set.keyText">Text on keys</label>
       <select id="set-key-text">
-        <option value="small">Small</option>
-        <option value="normal">Normal</option>
-        <option value="large">Large</option>
-        <option value="xlarge">Very large</option>
+        <option value="small" data-i18n="opt.small">Small</option>
+        <option value="normal" data-i18n="opt.normal">Normal</option>
+        <option value="large" data-i18n="opt.large">Large</option>
+        <option value="xlarge" data-i18n="opt.xlarge">Very large</option>
       </select>
     </div>
-    <h3>MIDI keyboard</h3>
+    <h3 data-i18n="midi.title">MIDI keyboard</h3>
     <div class="form-grid">
-      <label for="set-midi">MIDI</label>
+      <label for="set-midi" data-i18n="set.midi">MIDI</label>
       <select id="set-midi">
-        <option value="false">Off</option>
-        <option value="true">On</option>
+        <option value="false" data-i18n="opt.off">Off</option>
+        <option value="true" data-i18n="opt.on">On</option>
       </select>
     </div>
     <div class="form-grid" id="midi-details">
-      <label for="set-midi-input">Input</label> <select id="set-midi-input"></select>
-      <label for="set-midi-silent">A guess from MIDI</label>
+      <label for="set-midi-input" data-i18n="set.midiInput">Input</label> <select id="set-midi-input"></select>
+      <label for="set-midi-silent" data-i18n="set.midiSilent">A guess from MIDI</label>
       <select id="set-midi-silent">
-        <option value="true">Do not play it in the app (the keyboard sounds)</option>
-        <option value="false">Also play it in the app</option>
+        <option value="true" data-i18n="opt.silent">Do not play it in the app (the keyboard sounds)</option>
+        <option value="false" data-i18n="opt.alsoPlay">Also play it in the app</option>
       </select>
-      <label for="set-midi-light">Light the correct key</label>
+      <label for="set-midi-light" data-i18n="set.midiLight">Light the correct key</label>
       <select id="set-midi-light">
-        <option value="false">Off</option>
-        <option value="true">On, after a wrong answer (experimental)</option>
+        <option value="false" data-i18n="opt.off">Off</option>
+        <option value="true" data-i18n="opt.lightOn">On, after a wrong answer (experimental)</option>
       </select>
-      <label for="set-midi-output">Light output</label> <select id="set-midi-output"></select>
-      <label for="set-midi-channel">Light channel</label> <select id="set-midi-channel"></select>
-      <label for="set-midi-next-key">Key for Next</label> <select id="set-midi-next-key"></select>
-      <label for="set-midi-replay-key">Key for Play tone</label> <select id="set-midi-replay-key"></select>
+      <label for="set-midi-output" data-i18n="set.midiOutput">Light output</label> <select id="set-midi-output"></select>
+      <label for="set-midi-channel" data-i18n="set.midiChannel">Light channel</label> <select id="set-midi-channel"></select>
+      <label for="set-midi-next-key" data-i18n="set.nextKey">Key for Next</label> <select id="set-midi-next-key"></select>
+      <label for="set-midi-replay-key" data-i18n="set.replayKey">Key for Play tone</label> <select id="set-midi-replay-key"></select>
     </div>
     <p class="muted" id="midi-status"></p>
-    <p class="muted" id="settings-note">Changes apply at once. If the current tone is outside the new range or note set, a new tone plays at once.</p>
+    <p class="muted" id="settings-note" data-i18n="settings.note">Changes apply at once. If the current tone is outside the new range or note set, a new tone plays at once.</p>
   </details>
 
   <details class="panel" id="stats-panel">
-    <summary>Stats</summary>
+    <summary data-i18n="stats.title">Stats</summary>
     <div id="stats-body"></div>
-    <button type="button" id="reset-stats">Reset stats</button>
+    <button type="button" id="reset-stats" data-i18n="btn.resetStats">Reset stats</button>
   </details>
 
   <section id="debug" hidden>
@@ -815,6 +817,200 @@ const startMidi = () => {
   return midiPromise;
 };
 
+// ---- i18n.js ----
+// Pure translations: the UI text in each language. No DOM.
+// A message can have parameters: "{name}" gets params.name.
+// The UI selects the language. pickLanguage() takes the browser list, so tests can give one.
+
+const LANGUAGES = ['en', 'sk'];
+const FALLBACK_LANGUAGE = 'en';
+
+const MESSAGES = {
+  en: {
+    'app.title': 'Ear Trainer',
+    'start.intro': 'Listen to a tone. Then find it on the keyboard.',
+    'btn.start': 'Start',
+    'btn.playTone': '▶ Play tone',
+    'btn.myGuess': '▶ My guess',
+    'btn.next': 'Next →',
+    'ez310.title': 'Connect the keyboard by USB, then click. This turns MIDI on, selects the keyboard, and lights the correct key after a wrong answer.',
+    'ez310.done': 'Done: {name} on channel 1.',
+    'ez310.missing': 'MIDI is on, but no EZ-310 is connected. Connect it by USB, then click again.',
+    'keyboard.aria': 'Piano keyboard',
+    'help': 'Shortcuts: {Space} play tone, {R} replay my guess, {Enter} or {N} next. Letter keys {letters} answer in the lowest octave. Add {Shift} for one octave higher.',
+    'banner.question': 'Which note is this?',
+    'banner.correct': 'Correct — {note}',
+    'banner.wrong': 'Incorrect — you chose {guess}, it was {target}',
+    'score': 'Score {correct} / {total} · Streak {streak}',
+    'audio.error': 'Audio does not start: {error}',
+    'settings.title': 'Settings',
+    'set.language': 'Language',
+    'lang.auto': 'Automatic (from the browser)',
+    'set.low': 'Lowest note',
+    'set.high': 'Highest note',
+    'set.notes': 'Notes',
+    'opt.whiteOnly': 'White keys only',
+    'opt.all12': 'All 12 notes',
+    'set.octave': 'Octave',
+    'opt.exact': 'Exact octave must match',
+    'opt.anyOctave': 'Any octave is correct',
+    'set.names': 'Note names',
+    'opt.central': 'Central European (C D E F G A H, B = B♭)',
+    'opt.international': 'International (C D E F G A B)',
+    'set.wrong': 'After a wrong answer',
+    'opt.playCorrect': 'Also play the correct note',
+    'opt.playGuessOnly': 'Play only my guess',
+    'set.reference': 'Reference tone',
+    'ref.then': '{note}, then the tone',
+    'set.voice': 'Sound',
+    'opt.piano': 'Soft piano',
+    'opt.sine': 'Sine',
+    'opt.triangle': 'Triangle',
+    'set.keyText': 'Text on keys',
+    'opt.small': 'Small',
+    'opt.normal': 'Normal',
+    'opt.large': 'Large',
+    'opt.xlarge': 'Very large',
+    'opt.off': 'Off',
+    'opt.on': 'On',
+    'opt.none': 'None',
+    'midi.title': 'MIDI keyboard',
+    'set.midi': 'MIDI',
+    'set.midiInput': 'Input',
+    'set.midiSilent': 'A guess from MIDI',
+    'opt.silent': 'Do not play it in the app (the keyboard sounds)',
+    'opt.alsoPlay': 'Also play it in the app',
+    'set.midiLight': 'Light the correct key',
+    'opt.lightOn': 'On, after a wrong answer (experimental)',
+    'set.midiOutput': 'Light output',
+    'set.midiChannel': 'Light channel',
+    'set.nextKey': 'Key for Next',
+    'set.replayKey': 'Key for Play tone',
+    'settings.note': 'Changes apply at once. If the current tone is outside the new range or note set, a new tone plays at once.',
+    'port.allInputs': 'All inputs',
+    'port.notConnected': 'Not connected',
+    'midi.channel': 'Channel {n}',
+    'midi.portsNone': 'none',
+    'midi.ports': 'Inputs: {inputs}. Outputs: {outputs}.',
+    'midi.noWebMidi': 'This browser has no Web MIDI.',
+    'midi.off': 'MIDI is off.',
+    'midi.connecting': 'Connecting…',
+    'midi.error': 'MIDI does not start: {error}',
+    'midi.unlock': 'Click or tap the page once to turn on the sound. Then press a key on the keyboard.',
+    'stats.title': 'Stats',
+    'stats.empty': 'No answers yet.',
+    'stats.noneYet': 'None yet.',
+    'stats.weakest': 'Weakest notes',
+    'stats.confusions': 'Top confusions',
+    'stats.noteLine': '{note}: {correct} of {attempts} correct ({percent} %)',
+    'stats.confusionLine': '{target} heard as {guess}: {count}×',
+    'btn.resetStats': 'Reset stats',
+    'btn.resetConfirm': 'Click again to delete all stats',
+  },
+  sk: {
+    'app.title': 'Tréning sluchu',
+    'start.intro': 'Vypočujte si tón. Potom ho nájdite na klaviatúre.',
+    'btn.start': 'Štart',
+    'btn.playTone': '▶ Prehrať tón',
+    'btn.myGuess': '▶ Môj tip',
+    'btn.next': 'Ďalej →',
+    'ez310.title': 'Pripojte klávesnicu cez USB a potom kliknite. Zapne sa MIDI, vyberie sa klávesnica a po nesprávnej odpovedi sa rozsvieti správny kláves.',
+    'ez310.done': 'Hotovo: {name} na kanáli 1.',
+    'ez310.missing': 'MIDI je zapnuté, ale klávesnica EZ-310 nie je pripojená. Pripojte ju cez USB a kliknite znova.',
+    'keyboard.aria': 'Klaviatúra',
+    'help': 'Skratky: {Space} prehrať tón, {R} znova môj tip, {Enter} alebo {N} ďalej. Písmená {letters} odpovedajú v najnižšej oktáve. So {Shift} o oktávu vyššie.',
+    'banner.question': 'Ktorý tón to je?',
+    'banner.correct': 'Správne — {note}',
+    'banner.wrong': 'Nesprávne — vybrali ste {guess}, bol to {target}',
+    'score': 'Skóre {correct} / {total} · Séria {streak}',
+    'audio.error': 'Zvuk sa nespustil: {error}',
+    'settings.title': 'Nastavenia',
+    'set.language': 'Jazyk',
+    'lang.auto': 'Automaticky (podľa prehliadača)',
+    'set.low': 'Najnižší tón',
+    'set.high': 'Najvyšší tón',
+    'set.notes': 'Tóny',
+    'opt.whiteOnly': 'Iba biele klávesy',
+    'opt.all12': 'Všetkých 12 tónov',
+    'set.octave': 'Oktáva',
+    'opt.exact': 'Oktáva sa musí zhodovať',
+    'opt.anyOctave': 'Každá oktáva je správne',
+    'set.names': 'Názvy tónov',
+    'opt.central': 'Stredoeurópske (C D E F G A H, B = B♭)',
+    'opt.international': 'Medzinárodné (C D E F G A B)',
+    'set.wrong': 'Po nesprávnej odpovedi',
+    'opt.playCorrect': 'Zahrať aj správny tón',
+    'opt.playGuessOnly': 'Zahrať iba môj tip',
+    'set.reference': 'Referenčný tón',
+    'ref.then': '{note}, potom tón',
+    'set.voice': 'Zvuk',
+    'opt.piano': 'Jemný klavír',
+    'opt.sine': 'Sínus',
+    'opt.triangle': 'Trojuholník',
+    'set.keyText': 'Text na klávesoch',
+    'opt.small': 'Malý',
+    'opt.normal': 'Normálny',
+    'opt.large': 'Veľký',
+    'opt.xlarge': 'Veľmi veľký',
+    'opt.off': 'Vypnuté',
+    'opt.on': 'Zapnuté',
+    'opt.none': 'Žiadny',
+    'midi.title': 'MIDI klávesnica',
+    'set.midi': 'MIDI',
+    'set.midiInput': 'Vstup',
+    'set.midiSilent': 'Tip z MIDI',
+    'opt.silent': 'Nehrať v aplikácii (znie klávesnica)',
+    'opt.alsoPlay': 'Zahrať aj v aplikácii',
+    'set.midiLight': 'Rozsvietiť správny kláves',
+    'opt.lightOn': 'Zapnuté, po nesprávnej odpovedi (experimentálne)',
+    'set.midiOutput': 'Výstup pre svetlo',
+    'set.midiChannel': 'Kanál pre svetlo',
+    'set.nextKey': 'Kláves pre Ďalej',
+    'set.replayKey': 'Kláves pre Prehrať tón',
+    'settings.note': 'Zmeny platia hneď. Ak je aktuálny tón mimo nového rozsahu alebo sady tónov, hneď zaznie nový tón.',
+    'port.allInputs': 'Všetky vstupy',
+    'port.notConnected': 'Nepripojené',
+    'midi.channel': 'Kanál {n}',
+    'midi.portsNone': 'žiadne',
+    'midi.ports': 'Vstupy: {inputs}. Výstupy: {outputs}.',
+    'midi.noWebMidi': 'Tento prehliadač nemá Web MIDI.',
+    'midi.off': 'MIDI je vypnuté.',
+    'midi.connecting': 'Pripája sa…',
+    'midi.error': 'MIDI sa nespustilo: {error}',
+    'midi.unlock': 'Raz kliknite alebo ťuknite na stránku, aby sa zapol zvuk. Potom stlačte kláves na klávesnici.',
+    'stats.title': 'Štatistika',
+    'stats.empty': 'Zatiaľ žiadne odpovede.',
+    'stats.noneYet': 'Zatiaľ nič.',
+    'stats.weakest': 'Najslabšie tóny',
+    'stats.confusions': 'Najčastejšie zámeny',
+    'stats.noteLine': '{note}: {correct} z {attempts} správne ({percent} %)',
+    'stats.confusionLine': '{target} počuté ako {guess}: {count}×',
+    'btn.resetStats': 'Vymazať štatistiku',
+    'btn.resetConfirm': 'Kliknite znova, aby sa vymazala celá štatistika',
+  },
+};
+
+// The first browser language that the app has, else the fallback.
+// preferred: a list of language tags, for example navigator.languages.
+const pickLanguage = (preferred) => {
+  const tags = Array.isArray(preferred) ? preferred : [];
+  const found = tags
+    .map((tag) => String(tag).toLowerCase().split('-')[0])
+    .find((base) => LANGUAGES.includes(base));
+  return found || FALLBACK_LANGUAGE;
+};
+
+// The parameter names in a message, in order.
+const messageParams = (text) => (text.match(/\{\w+\}/g) || []).map((p) => p.slice(1, -1));
+
+// The message in lang, else in the fallback language, else the key itself.
+// A parameter that params does not give stays as "{name}".
+const translate = (lang, key, params = {}) => {
+  const table = MESSAGES[lang] || {};
+  const text = table[key] ?? MESSAGES[FALLBACK_LANGUAGE][key] ?? key;
+  return text.replace(/\{(\w+)\}/g, (whole, name) => (name in params ? String(params[name]) : whole));
+};
+
 // ---- settings.js ----
 // Pure settings: defaults, validation of stored data, and the game config.
 // No DOM and no storage. The UI reads and writes localStorage.
@@ -828,8 +1024,12 @@ const NAME_STYLES = ['central', 'international'];
 const KEY_TEXT_SIZES = { small: 0.8, normal: 1, large: 1.3, xlarge: 1.6 };
 const MIDI_ALL_INPUTS = 'all';
 const MIDI_NO_OUTPUT = '';
+// 'auto' takes the language from the browser.
+const LANGUAGE_AUTO = 'auto';
+const LANGUAGE_CHOICES = [LANGUAGE_AUTO, ...LANGUAGES];
 
 const DEFAULT_SETTINGS = {
+  language: LANGUAGE_AUTO,
   low: 60,
   high: 84,
   whiteOnly: true,
@@ -871,6 +1071,7 @@ const normalizeSettings = (raw) => {
   let high = oneOf(r.high, ends, d.high);
   if (low >= high) [low, high] = [d.low, d.high];
   return {
+    language: oneOf(r.language, LANGUAGE_CHOICES, d.language),
     low,
     high,
     whiteOnly: bool(r.whiteOnly, d.whiteOnly),
@@ -940,6 +1141,7 @@ const gameConfig = (s) => ({
 // ---- ui.js ----
 // DOM wiring: start gate, piano keyboard, buttons, banner, shortcuts,
 // settings and stats panels, localStorage. It runs the effects from game.js.
+// Text: t(key, params) gives the message in the current language (i18n.js).
 // MIDI: a note-on from a MIDI keyboard acts as a key press. With ?debug, it
 // also shows the audio and MIDI debug section.
 // All modules share one scope after the build. Do not reuse a top-level name
@@ -982,12 +1184,33 @@ const saveJSON = (key, value) => {
   }
 };
 
-let settings = normalizeSettings(loadJSON(SETTINGS_KEY));
+// The browser languages. navigator.languages can be missing or empty.
+const browserLanguages = () => {
+  try {
+    const list = navigator.languages;
+    return list && list.length ? [...list] : [navigator.language];
+  } catch {
+    return [];
+  }
+};
+
+// First visit (no stored settings): the note names follow the browser language.
+// Stored settings do not change.
+const firstVisitSettings = () =>
+  ({ nameStyle: pickLanguage(browserLanguages()) === 'en' ? 'international' : 'central' });
+
+const storedSettings = loadJSON(SETTINGS_KEY);
+let settings = normalizeSettings(storedSettings === null ? firstVisitSettings() : storedSettings);
 let game = createGame({ ...gameConfig(settings), stats: normalizeStats(loadJSON(STATS_KEY)) });
 const keyEls = new Map(); // midi -> key element
 let hub = null; // the MIDI hub, after startMidi() succeeds
 let midiStatus = '';
 const hubHooks = []; // run once, when the hub starts
+
+const language = () =>
+  (settings.language === LANGUAGE_AUTO ? pickLanguage(browserLanguages()) : settings.language);
+
+const t = (key, params) => translate(language(), key, params);
 
 const label = (m) =>
   noteName(m, { style: settings.nameStyle, showOctave: spansOctaves(settings.low, settings.high) });
@@ -1024,7 +1247,7 @@ const onStart = () => {
   ensureAudio()
     .then(() => dispatch(start))
     .catch((err) => {
-      $('start-gate').querySelector('p').textContent = `Audio does not start: ${err.message}`;
+      $('start-gate').querySelector('p').textContent = t('audio.error', { error: err.message });
     });
 };
 
@@ -1039,7 +1262,7 @@ const flash = (m) => {
 // A key press: the scored guess before the answer, free play after it.
 // fromMidi: the MIDI keyboard can sound the note by itself.
 // A control key acts as a button, on the screen and on the MIDI keyboard.
-const CONTROL_LABELS = { next: 'Next →', replay: '▶ Play tone' };
+const CONTROL_LABELS = { next: 'btn.next', replay: 'btn.playTone' };
 
 const runControl = (control) => {
   if (control === 'next') onNext();
@@ -1081,11 +1304,11 @@ const onNext = () => {
 // ---- rendering ----
 
 const bannerText = ({ phase, result }) => {
-  if (phase === AWAITING_GUESS) return ['', 'Which note is this?'];
+  if (phase === AWAITING_GUESS) return ['', t('banner.question')];
   if (phase !== ANSWERED) return ['', ''];
   return result.correct
-    ? ['ok', `Correct — ${label(result.guess)}`]
-    : ['bad', `Incorrect — you chose ${label(result.guess)}, it was ${label(result.target)}`];
+    ? ['ok', t('banner.correct', { note: label(result.guess) })]
+    : ['bad', t('banner.wrong', { guess: label(result.guess), target: label(result.target) })];
 };
 
 // One EZ-310 button: in the Start row before the game, in the game row after Start.
@@ -1101,7 +1324,7 @@ const render = () => {
   $('start-gate').hidden = phase !== IDLE;
   $('game').hidden = phase === IDLE;
   $('score').textContent = session.total
-    ? `Score ${session.correct} / ${session.total} · Streak ${session.streak}`
+    ? t('score', { correct: session.correct, total: session.total, streak: session.streak })
     : '';
 
   const [cls, text] = bannerText(game);
@@ -1151,13 +1374,13 @@ const clearMidiLights = () => {
   hub.allNotesOff(settings.midiOutput, settings.midiLightChannel);
 };
 
-const portNames = (ports) => ports.map((p) => p.name).join(', ') || 'none';
+const portNames = (ports) => ports.map((p) => p.name).join(', ') || t('midi.portsNone');
 
 const renderMidiStatus = () => {
   let text = midiStatus;
-  if (!midiSupported()) text = 'This browser has no Web MIDI.';
-  else if (!settings.midiEnabled) text = 'MIDI is off.';
-  else if (hub) text = `Inputs: ${portNames(hub.inputs())}. Outputs: ${portNames(hub.outputs())}.`;
+  if (!midiSupported()) text = t('midi.noWebMidi');
+  else if (!settings.midiEnabled) text = t('midi.off');
+  else if (hub) text = t('midi.ports', { inputs: portNames(hub.inputs()), outputs: portNames(hub.outputs()) });
   $('midi-status').textContent = text;
 };
 
@@ -1168,8 +1391,7 @@ const onMidiStart = () => {
     dispatch(start);
     return;
   }
-  $('start-gate').querySelector('p').textContent =
-    'Click or tap the page once to turn on the sound. Then press a key on the keyboard.';
+  $('start-gate').querySelector('p').textContent = t('midi.unlock');
 };
 
 // Before the game, any MIDI key starts it.
@@ -1194,7 +1416,7 @@ const unlockAudio = () => {
 // The browser can show a permission prompt. Call it again to try again after an error.
 const connectMidi = () => {
   if (hub || !midiSupported()) return;
-  midiStatus = 'Connecting…';
+  midiStatus = t('midi.connecting');
   renderMidiStatus();
   startMidi()
     .then((h) => {
@@ -1213,7 +1435,7 @@ const connectMidi = () => {
       render();
     })
     .catch((err) => {
-      midiStatus = `MIDI does not start: ${err.message}`;
+      midiStatus = t('midi.error', { error: err.message });
       renderMidiStatus();
     });
 };
@@ -1228,10 +1450,10 @@ const EZ310_REPLAY_KEY = 38;
 const onSetupEz310 = () => {
   const state = $('midi-preset-state');
   if (!midiSupported()) {
-    state.textContent = 'This browser has no Web MIDI.';
+    state.textContent = t('midi.noWebMidi');
     return;
   }
-  state.textContent = 'Connecting…';
+  state.textContent = t('midi.connecting');
   applySettings({
     ...settings, midiEnabled: true, midiSilentGuess: true, midiLight: true, midiLightChannel: 1,
     midiNextKey: EZ310_NEXT_KEY, midiReplayKey: EZ310_REPLAY_KEY,
@@ -1246,11 +1468,11 @@ const onSetupEz310 = () => {
         midiOutput: output ? output.id : settings.midiOutput,
       });
       state.textContent = output
-        ? `Done: ${output.name} on channel 1.`
-        : 'MIDI is on, but no EZ-310 is connected. Connect it by USB, then click again.';
+        ? t('ez310.done', { name: output.name })
+        : t('ez310.missing');
     })
     .catch((err) => {
-      state.textContent = `MIDI does not start: ${err.message}`;
+      state.textContent = t('midi.error', { error: err.message });
     });
 };
 
@@ -1268,7 +1490,7 @@ const renderStats = () => {
   if (weak.length === 0) {
     const p = document.createElement('p');
     p.className = 'muted';
-    p.textContent = 'No answers yet.';
+    p.textContent = t('stats.empty');
     body.append(p);
     return;
   }
@@ -1283,17 +1505,18 @@ const renderStats = () => {
       list.append(li);
     });
     div.append(h, items.length ? list : Object.assign(document.createElement('p'), {
-      className: 'muted', textContent: 'None yet.',
+      className: 'muted', textContent: t('stats.noneYet'),
     }));
     return div;
   };
   const cols = document.createElement('div');
   cols.className = 'stats-cols';
   cols.append(
-    column('Weakest notes', weak.map((w) =>
-      `${label(w.midi)}: ${w.correct} of ${w.attempts} correct (${Math.round(w.accuracy * 100)} %)`)),
-    column('Top confusions', conf.map((c) =>
-      `${label(c.target)} heard as ${label(c.guess)}: ${c.count}×`)),
+    column(t('stats.weakest'), weak.map((w) => t('stats.noteLine', {
+      note: label(w.midi), correct: w.correct, attempts: w.attempts, percent: Math.round(w.accuracy * 100),
+    }))),
+    column(t('stats.confusions'), conf.map((c) =>
+      t('stats.confusionLine', { target: label(c.target), guess: label(c.guess), count: c.count }))),
   );
   body.append(cols);
 };
@@ -1317,8 +1540,8 @@ const buildKeyboard = () => {
     if (control) {
       // A control key shows the button that it replaces, as vertical text.
       el.classList.add('control');
-      el.setAttribute('aria-label', CONTROL_LABELS[control]);
-      el.textContent = CONTROL_LABELS[control];
+      el.setAttribute('aria-label', t(CONTROL_LABELS[control]));
+      el.textContent = t(CONTROL_LABELS[control]);
     } else {
       el.setAttribute('aria-label', label(m));
       // Show the octave only on C, so the keys stay easy to read.
@@ -1384,6 +1607,38 @@ const helpLetters = () =>
     .map((m) => noteName(m, { style: settings.nameStyle }))
     .join(' ');
 
+// The help message has the parameters {Space}, {R}, ... for keys, and {letters}.
+// Each key parameter becomes a <kbd> element. No HTML comes from the message.
+const renderHelp = () => {
+  const help = $('help');
+  help.textContent = '';
+  t('help').split(/\{(\w+)\}/).forEach((part, i) => {
+    if (i % 2 === 0) {
+      help.append(part);
+    } else if (part === 'letters') {
+      help.append(Object.assign(document.createElement('span'), { id: 'help-letters', textContent: helpLetters() }));
+    } else {
+      help.append(Object.assign(document.createElement('kbd'), { textContent: part }));
+    }
+  });
+};
+
+// The static text in index.html: data-i18n (text), data-i18n-title, data-i18n-aria.
+const renderStaticText = () => {
+  document.documentElement.lang = language();
+  document.title = t('app.title');
+  document.querySelectorAll('[data-i18n]').forEach((el) => {
+    el.textContent = t(el.dataset.i18n);
+  });
+  document.querySelectorAll('[data-i18n-title]').forEach((el) => {
+    el.title = t(el.dataset.i18nTitle);
+  });
+  document.querySelectorAll('[data-i18n-aria]').forEach((el) => {
+    el.setAttribute('aria-label', t(el.dataset.i18nAria));
+  });
+  renderHelp();
+};
+
 // ---- settings panel ----
 
 const fillSelect = (el, options, value) => {
@@ -1395,7 +1650,7 @@ const fillSelect = (el, options, value) => {
 // A stored port that is not connected now stays in the list, so the setting survives.
 const portOptions = (ports, stored, first) => {
   const options = [first, ...ports.map((p) => [p.id, p.name])];
-  if (!options.some(([id]) => id === stored)) options.push([stored, 'Not connected']);
+  if (!options.some(([id]) => id === stored)) options.push([stored, t('port.notConnected')]);
   return options;
 };
 
@@ -1407,8 +1662,9 @@ const fillSettingsForm = () => {
   fillSelect($('set-low'), ends.filter((m) => m < s.high).map((m) => [m, name(m)]), s.low);
   fillSelect($('set-high'), ends.filter((m) => m > s.low).map((m) => [m, name(m)]), s.high);
   fillSelect($('set-reference'),
-    [['off', 'Off'], ...REFERENCE_NOTES.map((m) => [m, `${name(m)}, then the tone`])],
+    [['off', t('opt.off')], ...REFERENCE_NOTES.map((m) => [m, t('ref.then', { note: name(m) })])],
     s.referenceNote === null ? 'off' : s.referenceNote);
+  $('set-language').value = s.language;
   $('set-white').value = String(s.whiteOnly);
   $('set-octave').value = s.octaveMode;
   $('set-names').value = s.nameStyle;
@@ -1421,12 +1677,12 @@ const fillSettingsForm = () => {
   $('set-midi-silent').value = String(s.midiSilentGuess);
   $('set-midi-light').value = String(s.midiLight);
   fillSelect($('set-midi-input'),
-    portOptions(hub ? hub.inputs() : [], s.midiInput, [MIDI_ALL_INPUTS, 'All inputs']), s.midiInput);
+    portOptions(hub ? hub.inputs() : [], s.midiInput, [MIDI_ALL_INPUTS, t('port.allInputs')]), s.midiInput);
   fillSelect($('set-midi-output'),
-    portOptions(hub ? hub.outputs() : [], s.midiOutput, [MIDI_NO_OUTPUT, 'None']), s.midiOutput);
+    portOptions(hub ? hub.outputs() : [], s.midiOutput, [MIDI_NO_OUTPUT, t('opt.none')]), s.midiOutput);
   fillSelect($('set-midi-channel'),
-    Array.from({ length: 16 }, (_, i) => [i + 1, `Channel ${i + 1}`]), s.midiLightChannel);
-  const keyOptions = [['none', 'None'],
+    Array.from({ length: 16 }, (_, i) => [i + 1, t('midi.channel', { n: i + 1 })]), s.midiLightChannel);
+  const keyOptions = [['none', t('opt.none')],
     ...buildNoteSet({ low: RANGE_MIN, high: RANGE_MAX, whiteOnly: false }).map((m) => [m, name(m)])];
   const keyValue = (k) => (k === null ? 'none' : k);
   fillSelect($('set-midi-next-key'), keyOptions, keyValue(s.midiNextKey));
@@ -1436,6 +1692,7 @@ const fillSettingsForm = () => {
 const keyFromForm = (id) => ($(id).value === 'none' ? null : Number($(id).value));
 
 const readSettingsForm = () => ({
+  language: $('set-language').value,
   low: Number($('set-low').value),
   high: Number($('set-high').value),
   whiteOnly: $('set-white').value === 'true',
@@ -1459,11 +1716,11 @@ const applySettings = (raw) => {
   settings = normalizeSettings(raw);
   saveJSON(SETTINGS_KEY, settings);
   setVoice(settings.voice);
+  renderStaticText();
   applyMidiSettings();
   game = configure(game, gameConfig(settings));
   buildKeyboard();
   fillSettingsForm();
-  $('help-letters').textContent = helpLetters();
   renderStats();
   // The current target can drop out of the new note set. Then draw a new one.
   // Before the answer, the round has no score. After it, the score stays.
@@ -1491,12 +1748,12 @@ const setupResetStats = () => {
   const disarm = () => {
     clearTimeout(timer);
     btn.classList.remove('armed');
-    btn.textContent = 'Reset stats';
+    btn.textContent = t('btn.resetStats');
   };
   btn.addEventListener('click', () => {
     if (!btn.classList.contains('armed')) {
       btn.classList.add('armed');
-      btn.textContent = 'Click again to delete all stats';
+      btn.textContent = t('btn.resetConfirm');
       timer = setTimeout(disarm, RESET_ARM_MS);
       return;
     }
@@ -1508,8 +1765,8 @@ const setupResetStats = () => {
 };
 
 const setupGame = () => {
+  renderStaticText();
   buildKeyboard();
-  $('help-letters').textContent = helpLetters();
   onButton('start', onStart);
   onButton('play-target', onReplayTarget);
   onButton('play-guess', onReplayGuess);

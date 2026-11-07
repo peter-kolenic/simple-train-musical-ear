@@ -1,5 +1,6 @@
 // DOM wiring: start gate, piano keyboard, buttons, banner, shortcuts,
 // settings and stats panels, localStorage. It runs the effects from game.js.
+// Text: t(key, params) gives the message in the current language (i18n.js).
 // MIDI: a note-on from a MIDI keyboard acts as a key press. With ?debug, it
 // also shows the audio and MIDI debug section.
 // All modules share one scope after the build. Do not reuse a top-level name
@@ -14,8 +15,9 @@ import { VOICES, ensureAudio, audioRunning, playNote, stopAll, setVoice } from '
 import {
   midiSupported, startMidi, noteOnBytes, noteOffBytes, controlChangeBytes,
 } from './midi.js';
+import { pickLanguage, translate } from './i18n.js';
 import {
-  REFERENCE_NOTES, KEY_TEXT_SIZES, MIDI_ALL_INPUTS, MIDI_NO_OUTPUT, RANGE_MIN, RANGE_MAX,
+  REFERENCE_NOTES, KEY_TEXT_SIZES, MIDI_ALL_INPUTS, MIDI_NO_OUTPUT, RANGE_MIN, RANGE_MAX, LANGUAGE_AUTO,
   controlAction, rangeEndpoints, normalizeSettings, normalizeStats, gameConfig,
 } from './settings.js';
 
@@ -56,12 +58,33 @@ const saveJSON = (key, value) => {
   }
 };
 
-let settings = normalizeSettings(loadJSON(SETTINGS_KEY));
+// The browser languages. navigator.languages can be missing or empty.
+const browserLanguages = () => {
+  try {
+    const list = navigator.languages;
+    return list && list.length ? [...list] : [navigator.language];
+  } catch {
+    return [];
+  }
+};
+
+// First visit (no stored settings): the note names follow the browser language.
+// Stored settings do not change.
+const firstVisitSettings = () =>
+  ({ nameStyle: pickLanguage(browserLanguages()) === 'en' ? 'international' : 'central' });
+
+const storedSettings = loadJSON(SETTINGS_KEY);
+let settings = normalizeSettings(storedSettings === null ? firstVisitSettings() : storedSettings);
 let game = createGame({ ...gameConfig(settings), stats: normalizeStats(loadJSON(STATS_KEY)) });
 const keyEls = new Map(); // midi -> key element
 let hub = null; // the MIDI hub, after startMidi() succeeds
 let midiStatus = '';
 const hubHooks = []; // run once, when the hub starts
+
+const language = () =>
+  (settings.language === LANGUAGE_AUTO ? pickLanguage(browserLanguages()) : settings.language);
+
+const t = (key, params) => translate(language(), key, params);
 
 const label = (m) =>
   noteName(m, { style: settings.nameStyle, showOctave: spansOctaves(settings.low, settings.high) });
@@ -98,7 +121,7 @@ const onStart = () => {
   ensureAudio()
     .then(() => dispatch(start))
     .catch((err) => {
-      $('start-gate').querySelector('p').textContent = `Audio does not start: ${err.message}`;
+      $('start-gate').querySelector('p').textContent = t('audio.error', { error: err.message });
     });
 };
 
@@ -113,7 +136,7 @@ const flash = (m) => {
 // A key press: the scored guess before the answer, free play after it.
 // fromMidi: the MIDI keyboard can sound the note by itself.
 // A control key acts as a button, on the screen and on the MIDI keyboard.
-const CONTROL_LABELS = { next: 'Next →', replay: '▶ Play tone' };
+const CONTROL_LABELS = { next: 'btn.next', replay: 'btn.playTone' };
 
 const runControl = (control) => {
   if (control === 'next') onNext();
@@ -155,11 +178,11 @@ const onNext = () => {
 // ---- rendering ----
 
 const bannerText = ({ phase, result }) => {
-  if (phase === AWAITING_GUESS) return ['', 'Which note is this?'];
+  if (phase === AWAITING_GUESS) return ['', t('banner.question')];
   if (phase !== ANSWERED) return ['', ''];
   return result.correct
-    ? ['ok', `Correct — ${label(result.guess)}`]
-    : ['bad', `Incorrect — you chose ${label(result.guess)}, it was ${label(result.target)}`];
+    ? ['ok', t('banner.correct', { note: label(result.guess) })]
+    : ['bad', t('banner.wrong', { guess: label(result.guess), target: label(result.target) })];
 };
 
 // One EZ-310 button: in the Start row before the game, in the game row after Start.
@@ -175,7 +198,7 @@ const render = () => {
   $('start-gate').hidden = phase !== IDLE;
   $('game').hidden = phase === IDLE;
   $('score').textContent = session.total
-    ? `Score ${session.correct} / ${session.total} · Streak ${session.streak}`
+    ? t('score', { correct: session.correct, total: session.total, streak: session.streak })
     : '';
 
   const [cls, text] = bannerText(game);
@@ -225,13 +248,13 @@ const clearMidiLights = () => {
   hub.allNotesOff(settings.midiOutput, settings.midiLightChannel);
 };
 
-const portNames = (ports) => ports.map((p) => p.name).join(', ') || 'none';
+const portNames = (ports) => ports.map((p) => p.name).join(', ') || t('midi.portsNone');
 
 const renderMidiStatus = () => {
   let text = midiStatus;
-  if (!midiSupported()) text = 'This browser has no Web MIDI.';
-  else if (!settings.midiEnabled) text = 'MIDI is off.';
-  else if (hub) text = `Inputs: ${portNames(hub.inputs())}. Outputs: ${portNames(hub.outputs())}.`;
+  if (!midiSupported()) text = t('midi.noWebMidi');
+  else if (!settings.midiEnabled) text = t('midi.off');
+  else if (hub) text = t('midi.ports', { inputs: portNames(hub.inputs()), outputs: portNames(hub.outputs()) });
   $('midi-status').textContent = text;
 };
 
@@ -242,8 +265,7 @@ const onMidiStart = () => {
     dispatch(start);
     return;
   }
-  $('start-gate').querySelector('p').textContent =
-    'Click or tap the page once to turn on the sound. Then press a key on the keyboard.';
+  $('start-gate').querySelector('p').textContent = t('midi.unlock');
 };
 
 // Before the game, any MIDI key starts it.
@@ -268,7 +290,7 @@ const unlockAudio = () => {
 // The browser can show a permission prompt. Call it again to try again after an error.
 const connectMidi = () => {
   if (hub || !midiSupported()) return;
-  midiStatus = 'Connecting…';
+  midiStatus = t('midi.connecting');
   renderMidiStatus();
   startMidi()
     .then((h) => {
@@ -287,7 +309,7 @@ const connectMidi = () => {
       render();
     })
     .catch((err) => {
-      midiStatus = `MIDI does not start: ${err.message}`;
+      midiStatus = t('midi.error', { error: err.message });
       renderMidiStatus();
     });
 };
@@ -302,10 +324,10 @@ const EZ310_REPLAY_KEY = 38;
 const onSetupEz310 = () => {
   const state = $('midi-preset-state');
   if (!midiSupported()) {
-    state.textContent = 'This browser has no Web MIDI.';
+    state.textContent = t('midi.noWebMidi');
     return;
   }
-  state.textContent = 'Connecting…';
+  state.textContent = t('midi.connecting');
   applySettings({
     ...settings, midiEnabled: true, midiSilentGuess: true, midiLight: true, midiLightChannel: 1,
     midiNextKey: EZ310_NEXT_KEY, midiReplayKey: EZ310_REPLAY_KEY,
@@ -320,11 +342,11 @@ const onSetupEz310 = () => {
         midiOutput: output ? output.id : settings.midiOutput,
       });
       state.textContent = output
-        ? `Done: ${output.name} on channel 1.`
-        : 'MIDI is on, but no EZ-310 is connected. Connect it by USB, then click again.';
+        ? t('ez310.done', { name: output.name })
+        : t('ez310.missing');
     })
     .catch((err) => {
-      state.textContent = `MIDI does not start: ${err.message}`;
+      state.textContent = t('midi.error', { error: err.message });
     });
 };
 
@@ -342,7 +364,7 @@ const renderStats = () => {
   if (weak.length === 0) {
     const p = document.createElement('p');
     p.className = 'muted';
-    p.textContent = 'No answers yet.';
+    p.textContent = t('stats.empty');
     body.append(p);
     return;
   }
@@ -357,17 +379,18 @@ const renderStats = () => {
       list.append(li);
     });
     div.append(h, items.length ? list : Object.assign(document.createElement('p'), {
-      className: 'muted', textContent: 'None yet.',
+      className: 'muted', textContent: t('stats.noneYet'),
     }));
     return div;
   };
   const cols = document.createElement('div');
   cols.className = 'stats-cols';
   cols.append(
-    column('Weakest notes', weak.map((w) =>
-      `${label(w.midi)}: ${w.correct} of ${w.attempts} correct (${Math.round(w.accuracy * 100)} %)`)),
-    column('Top confusions', conf.map((c) =>
-      `${label(c.target)} heard as ${label(c.guess)}: ${c.count}×`)),
+    column(t('stats.weakest'), weak.map((w) => t('stats.noteLine', {
+      note: label(w.midi), correct: w.correct, attempts: w.attempts, percent: Math.round(w.accuracy * 100),
+    }))),
+    column(t('stats.confusions'), conf.map((c) =>
+      t('stats.confusionLine', { target: label(c.target), guess: label(c.guess), count: c.count }))),
   );
   body.append(cols);
 };
@@ -391,8 +414,8 @@ const buildKeyboard = () => {
     if (control) {
       // A control key shows the button that it replaces, as vertical text.
       el.classList.add('control');
-      el.setAttribute('aria-label', CONTROL_LABELS[control]);
-      el.textContent = CONTROL_LABELS[control];
+      el.setAttribute('aria-label', t(CONTROL_LABELS[control]));
+      el.textContent = t(CONTROL_LABELS[control]);
     } else {
       el.setAttribute('aria-label', label(m));
       // Show the octave only on C, so the keys stay easy to read.
@@ -458,6 +481,38 @@ const helpLetters = () =>
     .map((m) => noteName(m, { style: settings.nameStyle }))
     .join(' ');
 
+// The help message has the parameters {Space}, {R}, ... for keys, and {letters}.
+// Each key parameter becomes a <kbd> element. No HTML comes from the message.
+const renderHelp = () => {
+  const help = $('help');
+  help.textContent = '';
+  t('help').split(/\{(\w+)\}/).forEach((part, i) => {
+    if (i % 2 === 0) {
+      help.append(part);
+    } else if (part === 'letters') {
+      help.append(Object.assign(document.createElement('span'), { id: 'help-letters', textContent: helpLetters() }));
+    } else {
+      help.append(Object.assign(document.createElement('kbd'), { textContent: part }));
+    }
+  });
+};
+
+// The static text in index.html: data-i18n (text), data-i18n-title, data-i18n-aria.
+const renderStaticText = () => {
+  document.documentElement.lang = language();
+  document.title = t('app.title');
+  document.querySelectorAll('[data-i18n]').forEach((el) => {
+    el.textContent = t(el.dataset.i18n);
+  });
+  document.querySelectorAll('[data-i18n-title]').forEach((el) => {
+    el.title = t(el.dataset.i18nTitle);
+  });
+  document.querySelectorAll('[data-i18n-aria]').forEach((el) => {
+    el.setAttribute('aria-label', t(el.dataset.i18nAria));
+  });
+  renderHelp();
+};
+
 // ---- settings panel ----
 
 const fillSelect = (el, options, value) => {
@@ -469,7 +524,7 @@ const fillSelect = (el, options, value) => {
 // A stored port that is not connected now stays in the list, so the setting survives.
 const portOptions = (ports, stored, first) => {
   const options = [first, ...ports.map((p) => [p.id, p.name])];
-  if (!options.some(([id]) => id === stored)) options.push([stored, 'Not connected']);
+  if (!options.some(([id]) => id === stored)) options.push([stored, t('port.notConnected')]);
   return options;
 };
 
@@ -481,8 +536,9 @@ const fillSettingsForm = () => {
   fillSelect($('set-low'), ends.filter((m) => m < s.high).map((m) => [m, name(m)]), s.low);
   fillSelect($('set-high'), ends.filter((m) => m > s.low).map((m) => [m, name(m)]), s.high);
   fillSelect($('set-reference'),
-    [['off', 'Off'], ...REFERENCE_NOTES.map((m) => [m, `${name(m)}, then the tone`])],
+    [['off', t('opt.off')], ...REFERENCE_NOTES.map((m) => [m, t('ref.then', { note: name(m) })])],
     s.referenceNote === null ? 'off' : s.referenceNote);
+  $('set-language').value = s.language;
   $('set-white').value = String(s.whiteOnly);
   $('set-octave').value = s.octaveMode;
   $('set-names').value = s.nameStyle;
@@ -495,12 +551,12 @@ const fillSettingsForm = () => {
   $('set-midi-silent').value = String(s.midiSilentGuess);
   $('set-midi-light').value = String(s.midiLight);
   fillSelect($('set-midi-input'),
-    portOptions(hub ? hub.inputs() : [], s.midiInput, [MIDI_ALL_INPUTS, 'All inputs']), s.midiInput);
+    portOptions(hub ? hub.inputs() : [], s.midiInput, [MIDI_ALL_INPUTS, t('port.allInputs')]), s.midiInput);
   fillSelect($('set-midi-output'),
-    portOptions(hub ? hub.outputs() : [], s.midiOutput, [MIDI_NO_OUTPUT, 'None']), s.midiOutput);
+    portOptions(hub ? hub.outputs() : [], s.midiOutput, [MIDI_NO_OUTPUT, t('opt.none')]), s.midiOutput);
   fillSelect($('set-midi-channel'),
-    Array.from({ length: 16 }, (_, i) => [i + 1, `Channel ${i + 1}`]), s.midiLightChannel);
-  const keyOptions = [['none', 'None'],
+    Array.from({ length: 16 }, (_, i) => [i + 1, t('midi.channel', { n: i + 1 })]), s.midiLightChannel);
+  const keyOptions = [['none', t('opt.none')],
     ...buildNoteSet({ low: RANGE_MIN, high: RANGE_MAX, whiteOnly: false }).map((m) => [m, name(m)])];
   const keyValue = (k) => (k === null ? 'none' : k);
   fillSelect($('set-midi-next-key'), keyOptions, keyValue(s.midiNextKey));
@@ -510,6 +566,7 @@ const fillSettingsForm = () => {
 const keyFromForm = (id) => ($(id).value === 'none' ? null : Number($(id).value));
 
 const readSettingsForm = () => ({
+  language: $('set-language').value,
   low: Number($('set-low').value),
   high: Number($('set-high').value),
   whiteOnly: $('set-white').value === 'true',
@@ -533,11 +590,11 @@ const applySettings = (raw) => {
   settings = normalizeSettings(raw);
   saveJSON(SETTINGS_KEY, settings);
   setVoice(settings.voice);
+  renderStaticText();
   applyMidiSettings();
   game = configure(game, gameConfig(settings));
   buildKeyboard();
   fillSettingsForm();
-  $('help-letters').textContent = helpLetters();
   renderStats();
   // The current target can drop out of the new note set. Then draw a new one.
   // Before the answer, the round has no score. After it, the score stays.
@@ -565,12 +622,12 @@ const setupResetStats = () => {
   const disarm = () => {
     clearTimeout(timer);
     btn.classList.remove('armed');
-    btn.textContent = 'Reset stats';
+    btn.textContent = t('btn.resetStats');
   };
   btn.addEventListener('click', () => {
     if (!btn.classList.contains('armed')) {
       btn.classList.add('armed');
-      btn.textContent = 'Click again to delete all stats';
+      btn.textContent = t('btn.resetConfirm');
       timer = setTimeout(disarm, RESET_ARM_MS);
       return;
     }
@@ -582,8 +639,8 @@ const setupResetStats = () => {
 };
 
 const setupGame = () => {
+  renderStaticText();
   buildKeyboard();
-  $('help-letters').textContent = helpLetters();
   onButton('start', onStart);
   onButton('play-target', onReplayTarget);
   onButton('play-guess', onReplayGuess);

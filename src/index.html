@@ -141,17 +141,17 @@
 <body>
 <main>
   <header>
-    <h1>Ear Trainer</h1>
+    <h1 data-i18n="app.title">Ear Trainer</h1>
     <span id="score" class="muted"></span>
   </header>
   <p id="midi-preset-state" class="muted"></p>
-  <noscript><p>This app needs JavaScript.</p></noscript>
+  <noscript><p>This app needs JavaScript. / Táto aplikácia potrebuje JavaScript.</p></noscript>
 
   <section id="start-gate">
-    <p class="muted">Listen to a tone. Then find it on the keyboard.</p>
+    <p class="muted" data-i18n="start.intro">Listen to a tone. Then find it on the keyboard.</p>
     <div class="controls" id="start-row">
-      <button type="button" id="start">Start</button>
-      <button type="button" id="midi-ez310"
+      <button type="button" id="start" data-i18n="btn.start">Start</button>
+      <button type="button" id="midi-ez310" data-i18n-title="ez310.title"
         title="Connect the keyboard by USB, then click. This turns MIDI on, selects the keyboard, and lights the correct key after a wrong answer.">🎹 EZ-310</button>
     </div>
   </section>
@@ -159,91 +159,93 @@
   <section id="game" hidden>
     <div id="banner" role="status" aria-live="polite"></div>
     <div class="controls" id="game-row">
-      <button type="button" id="play-target">▶ Play tone<kbd>Space</kbd></button>
-      <button type="button" id="play-guess">▶ My guess<kbd>R</kbd></button>
-      <button type="button" id="next" class="primary">Next →<kbd>Enter</kbd></button>
+      <button type="button" id="play-target"><span data-i18n="btn.playTone">▶ Play tone</span><kbd>Space</kbd></button>
+      <button type="button" id="play-guess"><span data-i18n="btn.myGuess">▶ My guess</span><kbd>R</kbd></button>
+      <button type="button" id="next" class="primary"><span data-i18n="btn.next">Next →</span><kbd>Enter</kbd></button>
     </div>
-    <div id="keyboard" aria-label="Piano keyboard"></div>
-    <p id="help" class="muted">
-      Shortcuts: <kbd>Space</kbd> play tone, <kbd>R</kbd> replay my guess,
-      <kbd>Enter</kbd> or <kbd>N</kbd> next. Letter keys <span id="help-letters"></span> answer in the
-      lowest octave. Add <kbd>Shift</kbd> for one octave higher.
-    </p>
+    <div id="keyboard" data-i18n-aria="keyboard.aria" aria-label="Piano keyboard"></div>
+    <p id="help" class="muted"></p>
   </section>
 
   <details class="panel" id="settings-panel">
-    <summary>Settings</summary>
+    <summary data-i18n="settings.title">Settings</summary>
     <div class="form-grid">
-      <label for="set-low">Lowest note</label> <select id="set-low"></select>
-      <label for="set-high">Highest note</label> <select id="set-high"></select>
-      <label for="set-white">Notes</label>
+      <label for="set-language" data-i18n="set.language">Language</label>
+      <select id="set-language">
+        <option value="auto" data-i18n="lang.auto">Automatic (from the browser)</option>
+        <option value="en">English</option>
+        <option value="sk">Slovenčina</option>
+      </select>
+      <label for="set-low" data-i18n="set.low">Lowest note</label> <select id="set-low"></select>
+      <label for="set-high" data-i18n="set.high">Highest note</label> <select id="set-high"></select>
+      <label for="set-white" data-i18n="set.notes">Notes</label>
       <select id="set-white">
-        <option value="true">White keys only</option>
-        <option value="false">All 12 notes</option>
+        <option value="true" data-i18n="opt.whiteOnly">White keys only</option>
+        <option value="false" data-i18n="opt.all12">All 12 notes</option>
       </select>
-      <label for="set-octave">Octave</label>
+      <label for="set-octave" data-i18n="set.octave">Octave</label>
       <select id="set-octave">
-        <option value="exact">Exact octave must match</option>
-        <option value="pitchClass">Any octave is correct</option>
+        <option value="exact" data-i18n="opt.exact">Exact octave must match</option>
+        <option value="pitchClass" data-i18n="opt.anyOctave">Any octave is correct</option>
       </select>
-      <label for="set-names">Note names</label>
+      <label for="set-names" data-i18n="set.names">Note names</label>
       <select id="set-names">
-        <option value="central">Central European (C D E F G A H, B = B♭)</option>
-        <option value="international">International (C D E F G A B)</option>
+        <option value="central" data-i18n="opt.central">Central European (C D E F G A H, B = B♭)</option>
+        <option value="international" data-i18n="opt.international">International (C D E F G A B)</option>
       </select>
-      <label for="set-wrong">After a wrong answer</label>
+      <label for="set-wrong" data-i18n="set.wrong">After a wrong answer</label>
       <select id="set-wrong">
-        <option value="true">Also play the correct note</option>
-        <option value="false">Play only my guess</option>
+        <option value="true" data-i18n="opt.playCorrect">Also play the correct note</option>
+        <option value="false" data-i18n="opt.playGuessOnly">Play only my guess</option>
       </select>
-      <label for="set-reference">Reference tone</label> <select id="set-reference"></select>
-      <label for="set-voice">Sound</label>
+      <label for="set-reference" data-i18n="set.reference">Reference tone</label> <select id="set-reference"></select>
+      <label for="set-voice" data-i18n="set.voice">Sound</label>
       <select id="set-voice">
-        <option value="piano-ish">Soft piano</option>
-        <option value="sine">Sine</option>
-        <option value="triangle">Triangle</option>
+        <option value="piano-ish" data-i18n="opt.piano">Soft piano</option>
+        <option value="sine" data-i18n="opt.sine">Sine</option>
+        <option value="triangle" data-i18n="opt.triangle">Triangle</option>
       </select>
-      <label for="set-key-text">Text on keys</label>
+      <label for="set-key-text" data-i18n="set.keyText">Text on keys</label>
       <select id="set-key-text">
-        <option value="small">Small</option>
-        <option value="normal">Normal</option>
-        <option value="large">Large</option>
-        <option value="xlarge">Very large</option>
+        <option value="small" data-i18n="opt.small">Small</option>
+        <option value="normal" data-i18n="opt.normal">Normal</option>
+        <option value="large" data-i18n="opt.large">Large</option>
+        <option value="xlarge" data-i18n="opt.xlarge">Very large</option>
       </select>
     </div>
-    <h3>MIDI keyboard</h3>
+    <h3 data-i18n="midi.title">MIDI keyboard</h3>
     <div class="form-grid">
-      <label for="set-midi">MIDI</label>
+      <label for="set-midi" data-i18n="set.midi">MIDI</label>
       <select id="set-midi">
-        <option value="false">Off</option>
-        <option value="true">On</option>
+        <option value="false" data-i18n="opt.off">Off</option>
+        <option value="true" data-i18n="opt.on">On</option>
       </select>
     </div>
     <div class="form-grid" id="midi-details">
-      <label for="set-midi-input">Input</label> <select id="set-midi-input"></select>
-      <label for="set-midi-silent">A guess from MIDI</label>
+      <label for="set-midi-input" data-i18n="set.midiInput">Input</label> <select id="set-midi-input"></select>
+      <label for="set-midi-silent" data-i18n="set.midiSilent">A guess from MIDI</label>
       <select id="set-midi-silent">
-        <option value="true">Do not play it in the app (the keyboard sounds)</option>
-        <option value="false">Also play it in the app</option>
+        <option value="true" data-i18n="opt.silent">Do not play it in the app (the keyboard sounds)</option>
+        <option value="false" data-i18n="opt.alsoPlay">Also play it in the app</option>
       </select>
-      <label for="set-midi-light">Light the correct key</label>
+      <label for="set-midi-light" data-i18n="set.midiLight">Light the correct key</label>
       <select id="set-midi-light">
-        <option value="false">Off</option>
-        <option value="true">On, after a wrong answer (experimental)</option>
+        <option value="false" data-i18n="opt.off">Off</option>
+        <option value="true" data-i18n="opt.lightOn">On, after a wrong answer (experimental)</option>
       </select>
-      <label for="set-midi-output">Light output</label> <select id="set-midi-output"></select>
-      <label for="set-midi-channel">Light channel</label> <select id="set-midi-channel"></select>
-      <label for="set-midi-next-key">Key for Next</label> <select id="set-midi-next-key"></select>
-      <label for="set-midi-replay-key">Key for Play tone</label> <select id="set-midi-replay-key"></select>
+      <label for="set-midi-output" data-i18n="set.midiOutput">Light output</label> <select id="set-midi-output"></select>
+      <label for="set-midi-channel" data-i18n="set.midiChannel">Light channel</label> <select id="set-midi-channel"></select>
+      <label for="set-midi-next-key" data-i18n="set.nextKey">Key for Next</label> <select id="set-midi-next-key"></select>
+      <label for="set-midi-replay-key" data-i18n="set.replayKey">Key for Play tone</label> <select id="set-midi-replay-key"></select>
     </div>
     <p class="muted" id="midi-status"></p>
-    <p class="muted" id="settings-note">Changes apply at once. If the current tone is outside the new range or note set, a new tone plays at once.</p>
+    <p class="muted" id="settings-note" data-i18n="settings.note">Changes apply at once. If the current tone is outside the new range or note set, a new tone plays at once.</p>
   </details>
 
   <details class="panel" id="stats-panel">
-    <summary>Stats</summary>
+    <summary data-i18n="stats.title">Stats</summary>
     <div id="stats-body"></div>
-    <button type="button" id="reset-stats">Reset stats</button>
+    <button type="button" id="reset-stats" data-i18n="btn.resetStats">Reset stats</button>
   </details>
 
   <section id="debug" hidden>

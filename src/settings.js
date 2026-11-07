@@ -3,6 +3,7 @@
 import { buildNoteSet } from './music.js';
 import { emptyStats } from './game.js';
 import { VOICES } from './audio.js';
+import { LANGUAGES } from './i18n.js';
 
 export const RANGE_MIN = 36; // C2
 export const RANGE_MAX = 96; // C7
@@ -13,8 +14,12 @@ export const NAME_STYLES = ['central', 'international'];
 export const KEY_TEXT_SIZES = { small: 0.8, normal: 1, large: 1.3, xlarge: 1.6 };
 export const MIDI_ALL_INPUTS = 'all';
 export const MIDI_NO_OUTPUT = '';
+// 'auto' takes the language from the browser.
+export const LANGUAGE_AUTO = 'auto';
+export const LANGUAGE_CHOICES = [LANGUAGE_AUTO, ...LANGUAGES];
 
 export const DEFAULT_SETTINGS = {
+  language: LANGUAGE_AUTO,
   low: 60,
   high: 84,
   whiteOnly: true,
@@ -56,6 +61,7 @@ export const normalizeSettings = (raw) => {
   let high = oneOf(r.high, ends, d.high);
   if (low >= high) [low, high] = [d.low, d.high];
   return {
+    language: oneOf(r.language, LANGUAGE_CHOICES, d.language),
     low,
     high,
     whiteOnly: bool(r.whiteOnly, d.whiteOnly),

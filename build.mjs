@@ -11,7 +11,7 @@ const OUT = join(root, 'dist', 'ear-trainer.html');
 const MARKER = '<!--SCRIPT-->';
 
 // Dependency order. Add modules here as phases add them.
-const MODULES = ['music.js', 'game.js', 'audio.js', 'midi.js', 'settings.js', 'ui.js'];
+const MODULES = ['music.js', 'game.js', 'audio.js', 'midi.js', 'i18n.js', 'settings.js', 'ui.js'];
 
 // An import statement can span many lines: remove it up to its module string.
 const IMPORT = /^\s*import\s[^;'"]*?(?:from\s*)?['"][^'"]+['"]\s*;?[^\S\n]*\n?/gm;

@@ -46,10 +46,11 @@ With international note names, use `B` in place of `H`. With Central European na
 
 Open **Settings** under the keyboard.
 
+- **Language**: automatic (default; the browser language), English, or Slovak.
 - **Lowest note** and **Highest note**: the range of the keyboard and of the tones. The default is C4 to C6.
 - **Notes**: white keys only (default), or all 12 notes.
 - **Octave**: the exact octave must match (default), or any octave is correct.
-- **Note names**: Central European (H, and B = B♭) or international.
+- **Note names**: Central European (H, and B = B♭) or international. On the first visit, an English browser gets international names. All other browsers get Central European names.
 - **After a wrong answer**: also play the correct note (default), or play only your guess.
 - **Reference tone**: play C3, C4, A4, or C5 before each tone. This trains relative pitch. The default is off.
 - **Sound**: soft piano (default), sine, or triangle.
@@ -74,8 +75,8 @@ Keys on the MIDI keyboard:
 | Key | Action |
 |---|---|
 | Any key, before the game | Start the game |
-| **Key for Next** | Next |
-| **Key for Play tone** | Play the tone again |
+| **Key for Next** | Next, when you release the key |
+| **Key for Play tone** | Play the tone again, when you release the key |
 | Any other key | Your guess, or free play after the answer |
 
 Set **Key for Next** and **Key for Play tone** in **Settings**. The default is none. **🎹 EZ-310** sets them to C2 and D2, the two lowest white keys of the EZ-310 (Yamaha calls C2 "C1"). These keys work only when MIDI is on.

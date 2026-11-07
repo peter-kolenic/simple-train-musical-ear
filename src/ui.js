@@ -23,6 +23,9 @@ const SETTINGS_KEY = 'ear-trainer.settings.v1';
 const STATS_KEY = 'ear-trainer.stats.v1';
 const KEY_FLASH_MS = 150;
 const RESET_ARM_MS = 4000;
+// A MIDI control key acts at its note-off, after this delay. The keyboard
+// sounds the key by itself, and its sound must stop before the target plays.
+const MIDI_CONTROL_DELAY_MS = 250;
 const STATS_ROWS = 5;
 const BLACK_KEY_WIDTH = 0.6; // fraction of a white key
 // Velocity 1 lights the key on the EZ-310 and makes no sound (tested).
@@ -112,12 +115,20 @@ const flash = (m) => {
 // A control key acts as a button, on the screen and on the MIDI keyboard.
 const CONTROL_LABELS = { next: 'Next →', replay: '▶ Play tone' };
 
+const runControl = (control) => {
+  if (control === 'next') onNext();
+  else onReplayTarget();
+};
+
+// MIDI control keys pressed and not yet released.
+const heldControls = new Set();
+
 const onPianoKey = (m, { fromMidi = false } = {}) => {
   const control = controlAction(settings, m);
   if (control) {
     flash(m);
-    if (control === 'next') onNext();
-    else onReplayTarget();
+    if (fromMidi) heldControls.add(m);
+    else runControl(control);
     return;
   }
   const mute = fromMidi && settings.midiSilentGuess ? m : null;
@@ -242,6 +253,13 @@ const onMidiNote = (m) => {
   else onPianoKey(m, { fromMidi: true });
 };
 
+// A held control key acts at its release.
+const onMidiNoteOff = (m) => {
+  if (!heldControls.delete(m)) return;
+  const control = controlAction(settings, m);
+  if (control && game.phase !== IDLE) setTimeout(() => runControl(control), MIDI_CONTROL_DELAY_MS);
+};
+
 // Any gesture on the page starts the audio context, so that MIDI can start the game later.
 const unlockAudio = () => {
   if (!audioRunning()) ensureAudio().catch(() => {});
@@ -258,6 +276,7 @@ const connectMidi = () => {
       hub = h;
       hub.setInput(settings.midiInput);
       hub.onNote(onMidiNote);
+      hub.onNoteOff(onMidiNoteOff);
       hubHooks.forEach((fn) => fn(hub));
       hub.onPorts(() => {
         fillSettingsForm();

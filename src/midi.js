@@ -31,6 +31,7 @@ export const createMidiHub = (access, { now = () => Date.now() } = {}) => {
   let inputId = 'all';
   let lit = null; // {outputId, note, channel, sentAt}
   const noteListeners = [];
+  const noteOffListeners = [];
   const messageListeners = [];
   const portListeners = [];
 
@@ -38,7 +39,9 @@ export const createMidiHub = (access, { now = () => Date.now() } = {}) => {
     const msg = parseMidiMessage(data);
     messageListeners.forEach((cb) => cb(msg, portId, data));
     if (inputId !== 'all' && portId !== inputId) return;
-    if (msg.type !== 'noteon' || msg.channel === MIDI_DRUM_CHANNEL) return;
+    if (msg.channel === MIDI_DRUM_CHANNEL) return;
+    if (msg.type === 'noteoff') noteOffListeners.forEach((cb) => cb(msg.note, msg));
+    if (msg.type !== 'noteon') return;
     if (lit && lit.note === msg.note && now() - lit.sentAt < MIDI_ECHO_MS) return;
     noteListeners.forEach((cb) => cb(msg.note, msg));
   };
@@ -88,6 +91,7 @@ export const createMidiHub = (access, { now = () => Date.now() } = {}) => {
       inputId = id;
     },
     onNote: (cb) => noteListeners.push(cb),
+    onNoteOff: (cb) => noteOffListeners.push(cb),
     onMessage: (cb) => messageListeners.push(cb),
     onPorts: (cb) => portListeners.push(cb),
     send,

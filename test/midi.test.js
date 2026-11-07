@@ -68,6 +68,19 @@ test('hub: note-ons from all inputs; note-offs, velocity 0, and drums are ignore
   assert.deepEqual(notes, [60, 62]);
 });
 
+test('hub: onNoteOff gets note-offs and velocity-0 note-ons, not drums or other ports', () => {
+  const { f, hub } = setup();
+  const offs = [];
+  hub.onNoteOff((n) => offs.push(n));
+  hub.setInput('in1');
+  f.press('in1', [0x90, 36, 80]);
+  f.press('in1', [0x80, 36, 0]);
+  f.press('in1', [0x90, 38, 0]);
+  f.press('in1', [0x89, 40, 0]); // ch 10
+  f.press('in2', [0x80, 41, 0]);
+  assert.deepEqual(offs, [36, 38]);
+});
+
 test('hub: setInput filters by port', () => {
   const { f, hub, notes } = setup();
   hub.setInput('in2');

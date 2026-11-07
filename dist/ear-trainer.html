@@ -136,6 +136,32 @@
   #start-row { align-items: center; }
   #midi-preset-state { text-align: center; margin: 0; }
   #midi-preset-state:empty { display: none; }
+  #rotate-hint { display: none; text-align: center; font-size: 0.9rem; margin: 0; }
+
+  /* The keyboard scrolls by itself when the keys need more width than the screen.
+     --whites (set by ui.js) is the number of white keys. */
+  #keyboard-scroll { overflow-x: auto; margin: 16px 0; }
+  #keyboard-scroll #keyboard { margin: 0; }
+
+  /* Phone: a narrow screen or a touch screen. */
+  @media (max-width: 700px), (pointer: coarse) {
+    button, .key { touch-action: manipulation; -webkit-touch-callout: none; }
+    .key { -webkit-user-select: none; user-select: none; }
+    #keyboard { min-width: calc(var(--whites, 8) * 36px); }
+    .controls kbd, #help { display: none; }
+  }
+  @media (max-width: 700px) {
+    body { padding: 12px 16px; }
+    h1 { font-size: 1.3rem; }
+    #banner { font-size: 1rem; padding: 10px 12px; min-height: 0; margin: 10px 0; }
+    #game-row { flex-wrap: nowrap; gap: 8px; margin: 10px 0; }
+    #game-row button { flex: 1 1 0; min-width: 0; font-size: 1rem; padding: 12px 6px; }
+    .controls #midi-ez310 { margin-left: 0; }
+    .form-grid { grid-template-columns: minmax(0, max-content) minmax(0, 1fr); gap: 6px 10px; }
+  }
+  @media (max-width: 700px) and (orientation: portrait) {
+    #rotate-hint { display: block; }
+  }
 </style>
 </head>
 <body>
@@ -163,7 +189,10 @@
       <button type="button" id="play-guess"><span data-i18n="btn.myGuess">▶ My guess</span><kbd>R</kbd></button>
       <button type="button" id="next" class="primary"><span data-i18n="btn.next">Next →</span><kbd>Enter</kbd></button>
     </div>
-    <div id="keyboard" data-i18n-aria="keyboard.aria" aria-label="Piano keyboard"></div>
+    <div id="keyboard-scroll">
+      <div id="keyboard" data-i18n-aria="keyboard.aria" aria-label="Piano keyboard"></div>
+    </div>
+    <p id="rotate-hint" class="muted" data-i18n="hint.rotate">Turn the phone for more keys.</p>
     <p id="help" class="muted"></p>
   </section>
 
@@ -837,6 +866,7 @@ const MESSAGES = {
     'ez310.done': 'Done: {name} on channel 1.',
     'ez310.missing': 'MIDI is on, but no EZ-310 is connected. Connect it by USB, then click again.',
     'keyboard.aria': 'Piano keyboard',
+    'hint.rotate': 'Turn the phone for more keys.',
     'help': 'Shortcuts: {Space} play tone, {R} replay my guess, {Enter} or {N} next. Letter keys {letters} answer in the lowest octave. Add {Shift} for one octave higher.',
     'banner.question': 'Which note is this?',
     'banner.correct': 'Correct — {note}',
@@ -918,6 +948,7 @@ const MESSAGES = {
     'ez310.done': 'Hotovo: {name} na kanáli 1.',
     'ez310.missing': 'MIDI je zapnuté, ale klávesnica EZ-310 nie je pripojená. Pripojte ju cez USB a kliknite znova.',
     'keyboard.aria': 'Klaviatúra',
+    'hint.rotate': 'Otočte telefón, uvidíte viac klávesov.',
     'help': 'Skratky: {Space} prehrať tón, {R} znova môj tip, {Enter} alebo {N} ďalej. Písmená {letters} odpovedajú v najnižšej oktáve. So {Shift} o oktávu vyššie.',
     'banner.question': 'Ktorý tón to je?',
     'banner.correct': 'Správne — {note}',
@@ -1194,10 +1225,25 @@ const browserLanguages = () => {
   }
 };
 
+// A phone screen. The same width as the CSS media query in index.html.
+const NARROW_SCREEN = '(max-width: 700px)';
+// One octave, C4-C5, fits on a phone.
+const NARROW_HIGH = 72;
+
+const narrowScreen = () => {
+  try {
+    return window.matchMedia(NARROW_SCREEN).matches;
+  } catch {
+    return false;
+  }
+};
+
 // First visit (no stored settings): the note names follow the browser language.
-// Stored settings do not change.
-const firstVisitSettings = () =>
-  ({ nameStyle: pickLanguage(browserLanguages()) === 'en' ? 'international' : 'central' });
+// A phone gets a one-octave range. Stored settings do not change.
+const firstVisitSettings = () => ({
+  nameStyle: pickLanguage(browserLanguages()) === 'en' ? 'international' : 'central',
+  ...(narrowScreen() ? { high: NARROW_HIGH } : {}),
+});
 
 const storedSettings = loadJSON(SETTINGS_KEY);
 let settings = normalizeSettings(storedSettings === null ? firstVisitSettings() : storedSettings);
@@ -1530,6 +1576,7 @@ const buildKeyboard = () => {
   keyEls.clear();
   const all = buildNoteSet({ low: settings.low, high: settings.high, whiteOnly: false });
   const whites = all.filter((m) => !isBlack(m));
+  kb.style.setProperty('--whites', String(whites.length));
   const w = 100 / whites.length;
   all.forEach((m) => {
     const black = isBlack(m);

@@ -136,6 +136,32 @@
   #start-row { align-items: center; }
   #midi-preset-state { text-align: center; margin: 0; }
   #midi-preset-state:empty { display: none; }
+  #rotate-hint { display: none; text-align: center; font-size: 0.9rem; margin: 0; }
+
+  /* The keyboard scrolls by itself when the keys need more width than the screen.
+     --whites (set by ui.js) is the number of white keys. */
+  #keyboard-scroll { overflow-x: auto; margin: 16px 0; }
+  #keyboard-scroll #keyboard { margin: 0; }
+
+  /* Phone: a narrow screen or a touch screen. */
+  @media (max-width: 700px), (pointer: coarse) {
+    button, .key { touch-action: manipulation; -webkit-touch-callout: none; }
+    .key { -webkit-user-select: none; user-select: none; }
+    #keyboard { min-width: calc(var(--whites, 8) * 36px); }
+    .controls kbd, #help { display: none; }
+  }
+  @media (max-width: 700px) {
+    body { padding: 12px 16px; }
+    h1 { font-size: 1.3rem; }
+    #banner { font-size: 1rem; padding: 10px 12px; min-height: 0; margin: 10px 0; }
+    #game-row { flex-wrap: nowrap; gap: 8px; margin: 10px 0; }
+    #game-row button { flex: 1 1 0; min-width: 0; font-size: 1rem; padding: 12px 6px; }
+    .controls #midi-ez310 { margin-left: 0; }
+    .form-grid { grid-template-columns: minmax(0, max-content) minmax(0, 1fr); gap: 6px 10px; }
+  }
+  @media (max-width: 700px) and (orientation: portrait) {
+    #rotate-hint { display: block; }
+  }
 </style>
 </head>
 <body>
@@ -163,7 +189,10 @@
       <button type="button" id="play-guess"><span data-i18n="btn.myGuess">▶ My guess</span><kbd>R</kbd></button>
       <button type="button" id="next" class="primary"><span data-i18n="btn.next">Next →</span><kbd>Enter</kbd></button>
     </div>
-    <div id="keyboard" data-i18n-aria="keyboard.aria" aria-label="Piano keyboard"></div>
+    <div id="keyboard-scroll">
+      <div id="keyboard" data-i18n-aria="keyboard.aria" aria-label="Piano keyboard"></div>
+    </div>
+    <p id="rotate-hint" class="muted" data-i18n="hint.rotate">Turn the phone for more keys.</p>
     <p id="help" class="muted"></p>
   </section>
 

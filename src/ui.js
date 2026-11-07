@@ -68,10 +68,25 @@ const browserLanguages = () => {
   }
 };
 
+// A phone screen. The same width as the CSS media query in index.html.
+const NARROW_SCREEN = '(max-width: 700px)';
+// One octave, C4-C5, fits on a phone.
+const NARROW_HIGH = 72;
+
+const narrowScreen = () => {
+  try {
+    return window.matchMedia(NARROW_SCREEN).matches;
+  } catch {
+    return false;
+  }
+};
+
 // First visit (no stored settings): the note names follow the browser language.
-// Stored settings do not change.
-const firstVisitSettings = () =>
-  ({ nameStyle: pickLanguage(browserLanguages()) === 'en' ? 'international' : 'central' });
+// A phone gets a one-octave range. Stored settings do not change.
+const firstVisitSettings = () => ({
+  nameStyle: pickLanguage(browserLanguages()) === 'en' ? 'international' : 'central',
+  ...(narrowScreen() ? { high: NARROW_HIGH } : {}),
+});
 
 const storedSettings = loadJSON(SETTINGS_KEY);
 let settings = normalizeSettings(storedSettings === null ? firstVisitSettings() : storedSettings);
@@ -404,6 +419,7 @@ const buildKeyboard = () => {
   keyEls.clear();
   const all = buildNoteSet({ low: settings.low, high: settings.high, whiteOnly: false });
   const whites = all.filter((m) => !isBlack(m));
+  kb.style.setProperty('--whites', String(whites.length));
   const w = 100 / whites.length;
   all.forEach((m) => {
     const black = isBlack(m);

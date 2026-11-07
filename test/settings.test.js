@@ -17,8 +17,26 @@ test('normalizeSettings keeps valid fields', () => {
   const s = {
     low: 48, high: 72, whiteOnly: false, octaveMode: 'pitchClass', nameStyle: 'international',
     playTargetOnWrong: false, referenceNote: 69, voice: 'sine',
+    midiEnabled: true, midiInput: 'port-a', midiSilentGuess: false, midiLight: true,
+    midiOutput: 'port-b', midiLightChannel: 16,
   };
   assert.deepEqual(normalizeSettings(s), s);
+});
+
+test('normalizeSettings: MIDI fields', () => {
+  assert.equal(DEFAULT_SETTINGS.midiEnabled, false);
+  assert.equal(DEFAULT_SETTINGS.midiSilentGuess, true);
+  assert.equal(DEFAULT_SETTINGS.midiLight, false);
+  const s = normalizeSettings({
+    midiEnabled: 1, midiInput: '', midiOutput: 7, midiLightChannel: 17, midiSilentGuess: 'no',
+  });
+  assert.equal(s.midiEnabled, false);
+  assert.equal(s.midiInput, 'all'); // an empty input id means all inputs
+  assert.equal(s.midiOutput, ''); // no output
+  assert.equal(s.midiLightChannel, 1);
+  assert.equal(s.midiSilentGuess, true);
+  assert.equal(normalizeSettings({ midiLightChannel: 0 }).midiLightChannel, 1);
+  assert.equal(normalizeSettings({ midiOutput: 'x'.repeat(300) }).midiOutput, '');
 });
 
 test('normalizeSettings replaces bad fields one by one', () => {

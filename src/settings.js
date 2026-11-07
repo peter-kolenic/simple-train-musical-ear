@@ -9,6 +9,8 @@ export const RANGE_MAX = 96; // C7
 export const REFERENCE_NOTES = [48, 60, 69, 72]; // C3, C4, A4, C5
 export const OCTAVE_MODES = ['exact', 'pitchClass'];
 export const NAME_STYLES = ['central', 'international'];
+export const MIDI_ALL_INPUTS = 'all';
+export const MIDI_NO_OUTPUT = '';
 
 export const DEFAULT_SETTINGS = {
   low: 60,
@@ -19,6 +21,12 @@ export const DEFAULT_SETTINGS = {
   playTargetOnWrong: true,
   referenceNote: null,
   voice: 'piano-ish',
+  midiEnabled: false,
+  midiInput: MIDI_ALL_INPUTS,
+  midiSilentGuess: true, // the keyboard sounds by itself
+  midiLight: false, // experimental: light the correct key after a wrong answer
+  midiOutput: MIDI_NO_OUTPUT,
+  midiLightChannel: 1,
 };
 
 // Range endpoints are white keys, so the keyboard starts and ends with a white key.
@@ -27,6 +35,9 @@ export const rangeEndpoints = () =>
 
 const oneOf = (v, allowed, fallback) => (allowed.includes(v) ? v : fallback);
 const bool = (v, fallback) => (typeof v === 'boolean' ? v : fallback);
+// A Web MIDI port id is a browser-made string. Any short string can be valid.
+const validPortId = (v, fallback) => (typeof v === 'string' && v.length <= 256 ? v : fallback);
+const validChannel = (v, fallback) => (Number.isInteger(v) && v >= 1 && v <= 16 ? v : fallback);
 const isObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 
 // Any input gives a valid settings object. Bad fields get the default value.
@@ -46,6 +57,12 @@ export const normalizeSettings = (raw) => {
     playTargetOnWrong: bool(r.playTargetOnWrong, d.playTargetOnWrong),
     referenceNote: r.referenceNote === null ? null : oneOf(r.referenceNote, REFERENCE_NOTES, d.referenceNote),
     voice: oneOf(r.voice, VOICES, d.voice),
+    midiEnabled: bool(r.midiEnabled, d.midiEnabled),
+    midiInput: validPortId(r.midiInput, d.midiInput) || d.midiInput,
+    midiSilentGuess: bool(r.midiSilentGuess, d.midiSilentGuess),
+    midiLight: bool(r.midiLight, d.midiLight),
+    midiOutput: validPortId(r.midiOutput, d.midiOutput),
+    midiLightChannel: validChannel(r.midiLightChannel, d.midiLightChannel),
   };
 };
 

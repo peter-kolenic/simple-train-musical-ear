@@ -119,6 +119,8 @@
   #debug h2 { font-size: 1.1rem; margin: 0 0 8px; }
   #debug .row { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; align-items: center; }
   #debug button { padding: 4px 10px; min-width: 3em; }
+  #debug pre { font: 0.8rem ui-monospace, Consolas, monospace; margin: 8px 0; min-height: 1.5em; white-space: pre-wrap; }
+  details.panel h3 { font-size: 1rem; margin: 16px 0 0; }
 </style>
 </head>
 <body>
@@ -182,6 +184,28 @@
         <option value="triangle">Triangle</option>
       </select>
     </div>
+    <h3>MIDI keyboard</h3>
+    <div class="form-grid">
+      <label for="set-midi">MIDI</label>
+      <select id="set-midi">
+        <option value="false">Off</option>
+        <option value="true">On</option>
+      </select>
+      <label for="set-midi-input">Input</label> <select id="set-midi-input"></select>
+      <label for="set-midi-silent">A guess from MIDI</label>
+      <select id="set-midi-silent">
+        <option value="true">Do not play it in the app (the keyboard sounds)</option>
+        <option value="false">Also play it in the app</option>
+      </select>
+      <label for="set-midi-light">Light the correct key</label>
+      <select id="set-midi-light">
+        <option value="false">Off</option>
+        <option value="true">On, after a wrong answer (experimental)</option>
+      </select>
+      <label for="set-midi-output">Light output</label> <select id="set-midi-output"></select>
+      <label for="set-midi-channel">Light channel</label> <select id="set-midi-channel"></select>
+    </div>
+    <p class="muted" id="midi-status"></p>
     <p class="muted" id="settings-note">Changes apply at once. If the current tone is outside the new range or note set, a new tone plays at once.</p>
   </details>
 
@@ -201,6 +225,10 @@
     </div>
     <div class="row" id="debug-notes"></div>
     <div class="row" id="debug-extra"></div>
+    <h2>MIDI debug</h2>
+    <p class="muted">Turn MIDI on, and select the light output and channel in Settings. The buttons send to that output and channel. The log shows the last messages from all inputs.</p>
+    <div class="row" id="debug-midi"><span id="debug-midi-state" class="muted"></span></div>
+    <pre id="debug-midi-log"></pre>
   </section>
 </main>
 <!--SCRIPT-->

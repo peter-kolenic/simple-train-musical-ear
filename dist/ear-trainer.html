@@ -119,6 +119,8 @@
   #debug h2 { font-size: 1.1rem; margin: 0 0 8px; }
   #debug .row { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; align-items: center; }
   #debug button { padding: 4px 10px; min-width: 3em; }
+  #debug pre { font: 0.8rem ui-monospace, Consolas, monospace; margin: 8px 0; min-height: 1.5em; white-space: pre-wrap; }
+  details.panel h3 { font-size: 1rem; margin: 16px 0 0; }
 </style>
 </head>
 <body>
@@ -182,6 +184,28 @@
         <option value="triangle">Triangle</option>
       </select>
     </div>
+    <h3>MIDI keyboard</h3>
+    <div class="form-grid">
+      <label for="set-midi">MIDI</label>
+      <select id="set-midi">
+        <option value="false">Off</option>
+        <option value="true">On</option>
+      </select>
+      <label for="set-midi-input">Input</label> <select id="set-midi-input"></select>
+      <label for="set-midi-silent">A guess from MIDI</label>
+      <select id="set-midi-silent">
+        <option value="true">Do not play it in the app (the keyboard sounds)</option>
+        <option value="false">Also play it in the app</option>
+      </select>
+      <label for="set-midi-light">Light the correct key</label>
+      <select id="set-midi-light">
+        <option value="false">Off</option>
+        <option value="true">On, after a wrong answer (experimental)</option>
+      </select>
+      <label for="set-midi-output">Light output</label> <select id="set-midi-output"></select>
+      <label for="set-midi-channel">Light channel</label> <select id="set-midi-channel"></select>
+    </div>
+    <p class="muted" id="midi-status"></p>
     <p class="muted" id="settings-note">Changes apply at once. If the current tone is outside the new range or note set, a new tone plays at once.</p>
   </details>
 
@@ -201,6 +225,10 @@
     </div>
     <div class="row" id="debug-notes"></div>
     <div class="row" id="debug-extra"></div>
+    <h2>MIDI debug</h2>
+    <p class="muted">Turn MIDI on, and select the light output and channel in Settings. The buttons send to that output and channel. The log shows the last messages from all inputs.</p>
+    <div class="row" id="debug-midi"><span id="debug-midi-state" class="muted"></span></div>
+    <pre id="debug-midi-log"></pre>
   </section>
 </main>
 <script>
@@ -625,6 +653,122 @@ const setVoice = (v) => {
   if (synth) synth.setVoice(v);
 };
 
+// ---- midi.js ----
+// Web MIDI input and output. Browser-only at run time.
+// createMidiHub() takes a MIDIAccess object, so tests can give it a fake one.
+// The UI uses the module functions: midiSupported(), then startMidi().
+// Channels are 1-16 in this module, as on the keyboard display.
+
+const MIDI_DRUM_CHANNEL = 10;
+// An input note-on that repeats the lit note this soon after the send is an
+// echo of our own message, not a key press.
+const MIDI_ECHO_MS = 150;
+
+// Raw bytes to {type, channel, note, velocity}. type: 'noteon', 'noteoff', or 'other'.
+// A note-on with velocity 0 is a note-off.
+const parseMidiMessage = (data) => {
+  const [status = 0, d1 = 0, d2 = 0] = data;
+  const kind = status & 0xf0;
+  const channel = (status & 0x0f) + 1;
+  if (status < 0x80 || status >= 0xf0) return { type: 'other', status };
+  if (kind === 0x90 && d2 > 0) return { type: 'noteon', channel, note: d1, velocity: d2 };
+  if (kind === 0x90 || kind === 0x80) return { type: 'noteoff', channel, note: d1, velocity: d2 };
+  return { type: 'other', status, channel, data1: d1, data2: d2 };
+};
+
+const statusByte = (kind, channel) => kind | ((channel - 1) & 0x0f);
+const noteOnBytes = (note, channel, velocity) => [statusByte(0x90, channel), note & 0x7f, velocity & 0x7f];
+const noteOffBytes = (note, channel) => [statusByte(0x80, channel), note & 0x7f, 0];
+const controlChangeBytes = (cc, value, channel) => [statusByte(0xb0, channel), cc & 0x7f, value & 0x7f];
+
+const portList = (map) => [...map.values()].map((p) => ({ id: p.id, name: p.name || p.id }));
+
+const createMidiHub = (access, { now = () => Date.now() } = {}) => {
+  let inputId = 'all';
+  let lit = null; // {outputId, note, channel, sentAt}
+  const noteListeners = [];
+  const messageListeners = [];
+  const portListeners = [];
+
+  const handle = (portId, data) => {
+    const msg = parseMidiMessage(data);
+    messageListeners.forEach((cb) => cb(msg, portId, data));
+    if (inputId !== 'all' && portId !== inputId) return;
+    if (msg.type !== 'noteon' || msg.channel === MIDI_DRUM_CHANNEL) return;
+    if (lit && lit.note === msg.note && now() - lit.sentAt < MIDI_ECHO_MS) return;
+    noteListeners.forEach((cb) => cb(msg.note, msg));
+  };
+
+  // Called again after each port change, so a new device gets the handler.
+  const attach = () =>
+    access.inputs.forEach((input) => {
+      input.onmidimessage = (e) => handle(input.id, e.data);
+    });
+  attach();
+  access.onstatechange = () => {
+    attach();
+    portListeners.forEach((cb) => cb());
+  };
+
+  const send = (outputId, bytes) => {
+    const out = access.outputs.get(outputId);
+    if (!out) return false;
+    out.send(bytes);
+    return true;
+  };
+
+  const clearLight = () => {
+    if (lit) send(lit.outputId, noteOffBytes(lit.note, lit.channel));
+    lit = null;
+  };
+
+  // Sends a note-on that the keyboard holds until clearLight() or the next light().
+  const light = (outputId, note, { channel = 1, velocity = 1 } = {}) => {
+    clearLight();
+    if (!send(outputId, noteOnBytes(note, channel, velocity))) return false;
+    lit = { outputId, note, channel, sentAt: now() };
+    return true;
+  };
+
+  return {
+    inputs: () => portList(access.inputs),
+    outputs: () => portList(access.outputs),
+    setInput: (id) => {
+      inputId = id;
+    },
+    onNote: (cb) => noteListeners.push(cb),
+    onMessage: (cb) => messageListeners.push(cb),
+    onPorts: (cb) => portListeners.push(cb),
+    send,
+    light,
+    clearLight,
+    litNote: () => (lit ? lit.note : null),
+    litKey: () => (lit ? `${lit.outputId}|${lit.channel}|${lit.note}` : null),
+  };
+};
+
+// ---- browser singleton ----
+
+let midiPromise = null;
+
+const midiSupported = () =>
+  typeof navigator !== 'undefined' && typeof navigator.requestMIDIAccess === 'function';
+
+// Resolves to the hub. The browser can show a permission prompt.
+// A failure is not cached, so the user can try again.
+const startMidi = () => {
+  if (!midiSupported()) return Promise.reject(new Error('this browser has no Web MIDI'));
+  if (!midiPromise) {
+    midiPromise = navigator.requestMIDIAccess({ sysex: false })
+      .then((access) => createMidiHub(access))
+      .catch((err) => {
+        midiPromise = null;
+        throw err;
+      });
+  }
+  return midiPromise;
+};
+
 // ---- settings.js ----
 // Pure settings: defaults, validation of stored data, and the game config.
 // No DOM and no storage. The UI reads and writes localStorage.
@@ -634,6 +778,8 @@ const RANGE_MAX = 96; // C7
 const REFERENCE_NOTES = [48, 60, 69, 72]; // C3, C4, A4, C5
 const OCTAVE_MODES = ['exact', 'pitchClass'];
 const NAME_STYLES = ['central', 'international'];
+const MIDI_ALL_INPUTS = 'all';
+const MIDI_NO_OUTPUT = '';
 
 const DEFAULT_SETTINGS = {
   low: 60,
@@ -644,6 +790,12 @@ const DEFAULT_SETTINGS = {
   playTargetOnWrong: true,
   referenceNote: null,
   voice: 'piano-ish',
+  midiEnabled: false,
+  midiInput: MIDI_ALL_INPUTS,
+  midiSilentGuess: true, // the keyboard sounds by itself
+  midiLight: false, // experimental: light the correct key after a wrong answer
+  midiOutput: MIDI_NO_OUTPUT,
+  midiLightChannel: 1,
 };
 
 // Range endpoints are white keys, so the keyboard starts and ends with a white key.
@@ -652,6 +804,9 @@ const rangeEndpoints = () =>
 
 const oneOf = (v, allowed, fallback) => (allowed.includes(v) ? v : fallback);
 const bool = (v, fallback) => (typeof v === 'boolean' ? v : fallback);
+// A Web MIDI port id is a browser-made string. Any short string can be valid.
+const validPortId = (v, fallback) => (typeof v === 'string' && v.length <= 256 ? v : fallback);
+const validChannel = (v, fallback) => (Number.isInteger(v) && v >= 1 && v <= 16 ? v : fallback);
 const isObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 
 // Any input gives a valid settings object. Bad fields get the default value.
@@ -671,6 +826,12 @@ const normalizeSettings = (raw) => {
     playTargetOnWrong: bool(r.playTargetOnWrong, d.playTargetOnWrong),
     referenceNote: r.referenceNote === null ? null : oneOf(r.referenceNote, REFERENCE_NOTES, d.referenceNote),
     voice: oneOf(r.voice, VOICES, d.voice),
+    midiEnabled: bool(r.midiEnabled, d.midiEnabled),
+    midiInput: validPortId(r.midiInput, d.midiInput) || d.midiInput,
+    midiSilentGuess: bool(r.midiSilentGuess, d.midiSilentGuess),
+    midiLight: bool(r.midiLight, d.midiLight),
+    midiOutput: validPortId(r.midiOutput, d.midiOutput),
+    midiLightChannel: validChannel(r.midiLightChannel, d.midiLightChannel),
   };
 };
 
@@ -705,9 +866,10 @@ const gameConfig = (s) => ({
 // ---- ui.js ----
 // DOM wiring: start gate, piano keyboard, buttons, banner, shortcuts,
 // settings and stats panels, localStorage. It runs the effects from game.js.
-// With ?debug, it also shows the audio debug section.
+// MIDI: a note-on from a MIDI keyboard acts as a key press. With ?debug, it
+// also shows the audio and MIDI debug section.
 // All modules share one scope after the build. Do not reuse a top-level name
-// from music.js, game.js, or audio.js here.
+// from the other modules here.
 
 const SETTINGS_KEY = 'ear-trainer.settings.v1';
 const STATS_KEY = 'ear-trainer.stats.v1';
@@ -715,6 +877,10 @@ const KEY_FLASH_MS = 150;
 const RESET_ARM_MS = 4000;
 const STATS_ROWS = 5;
 const BLACK_KEY_WIDTH = 0.6; // fraction of a white key
+// Experimental. Velocity 1 is the quietest note-on. Not known: does it light
+// the key without a sound on the EZ-310? Check with the ?debug buttons.
+const MIDI_LIGHT_VELOCITY = 1;
+const MIDI_LOG_ROWS = 12;
 
 const $ = (id) => document.getElementById(id);
 
@@ -740,6 +906,9 @@ const saveJSON = (key, value) => {
 let settings = normalizeSettings(loadJSON(SETTINGS_KEY));
 let game = createGame({ ...gameConfig(settings), stats: normalizeStats(loadJSON(STATS_KEY)) });
 const keyEls = new Map(); // midi -> key element
+let hub = null; // the MIDI hub, after startMidi() succeeds
+let midiStatus = '';
+const hubHooks = []; // run once, when the hub starts
 
 const label = (m) =>
   noteName(m, { style: settings.nameStyle, showOctave: spansOctaves(settings.low, settings.high) });
@@ -748,19 +917,20 @@ const inSet = (m) => game.config.noteSet.includes(m);
 
 // ---- actions and effects ----
 
-const runEffects = (effects) =>
+// mute: a note that the MIDI keyboard already sounds. Its immediate play effect is dropped.
+const runEffects = (effects, mute) =>
   effects.forEach((e) => {
-    if (e.type === 'play') playNote(e.midi, { when: e.delay });
+    if (e.type === 'play' && !(e.midi === mute && e.delay === 0)) playNote(e.midi, { when: e.delay });
     // 'show': render() draws the result from the state.
   });
 
 // Runs a game action and its effects. stopFirst silences the notes that still sound.
-const dispatch = (action, arg, { stopFirst = true } = {}) => {
+const dispatch = (action, arg, { stopFirst = true, mute = null } = {}) => {
   const { state, effects } = action(game, arg);
   const statsChanged = state.stats !== game.stats;
   game = state;
   if (stopFirst) stopAll();
-  runEffects(effects);
+  runEffects(effects, mute);
   if (statsChanged) {
     saveJSON(STATS_KEY, game.stats);
     renderStats();
@@ -778,21 +948,25 @@ const onStart = () => {
     });
 };
 
+// A MIDI key can be outside the on-screen keyboard.
 const flash = (m) => {
   const el = keyEls.get(m);
+  if (!el) return;
   el.classList.add('down');
   setTimeout(() => el.classList.remove('down'), KEY_FLASH_MS);
 };
 
 // A key press: the scored guess before the answer, free play after it.
-const onPianoKey = (m) => {
+// fromMidi: the MIDI keyboard can sound the note by itself.
+const onPianoKey = (m, { fromMidi = false } = {}) => {
+  const mute = fromMidi && settings.midiSilentGuess ? m : null;
   if (game.phase === AWAITING_GUESS) {
     if (!inSet(m)) return; // dimmed keys do not guess
     flash(m);
-    dispatch(guess, m);
+    dispatch(guess, m, { mute });
   } else if (game.phase === ANSWERED) {
     flash(m);
-    dispatch(explore, m, { stopFirst: false });
+    dispatch(explore, m, { stopFirst: false, mute });
   }
 };
 
@@ -841,6 +1015,73 @@ const render = () => {
     el.classList.toggle('wrong', isGuess && !result.correct);
     el.setAttribute('aria-disabled', String(phase === AWAITING_GUESS && !inSet(m)));
   });
+  syncMidiLight();
+};
+
+// ---- MIDI ----
+
+// Experimental: the MIDI keyboard lights the correct key after a wrong answer,
+// until the next round. The light is a held note-on.
+const wantedLight = () => {
+  const s = settings;
+  if (!hub || !s.midiEnabled || !s.midiLight || s.midiOutput === MIDI_NO_OUTPUT) return null;
+  if (game.phase !== ANSWERED || game.result.correct) return null;
+  return { outputId: s.midiOutput, note: game.result.target, channel: s.midiLightChannel };
+};
+
+const syncMidiLight = () => {
+  if (!hub) return;
+  const w = wantedLight();
+  const key = w && `${w.outputId}|${w.channel}|${w.note}`;
+  if (key === hub.litKey()) return;
+  if (w) hub.light(w.outputId, w.note, { channel: w.channel, velocity: MIDI_LIGHT_VELOCITY });
+  else hub.clearLight();
+};
+
+const portNames = (ports) => ports.map((p) => p.name).join(', ') || 'none';
+
+const renderMidiStatus = () => {
+  let text = midiStatus;
+  if (!midiSupported()) text = 'This browser has no Web MIDI.';
+  else if (!settings.midiEnabled) text = 'MIDI is off.';
+  else if (hub) text = `Inputs: ${portNames(hub.inputs())}. Outputs: ${portNames(hub.outputs())}.`;
+  $('midi-status').textContent = text;
+};
+
+const onMidiNote = (m) => {
+  if (settings.midiEnabled) onPianoKey(m, { fromMidi: true });
+};
+
+// The browser can show a permission prompt. Call it again to try again after an error.
+const connectMidi = () => {
+  if (hub || !midiSupported()) return;
+  midiStatus = 'Connecting…';
+  renderMidiStatus();
+  startMidi()
+    .then((h) => {
+      if (hub) return;
+      hub = h;
+      hub.setInput(settings.midiInput);
+      hub.onNote(onMidiNote);
+      hubHooks.forEach((fn) => fn(hub));
+      hub.onPorts(() => {
+        fillSettingsForm();
+        renderMidiStatus();
+      });
+      fillSettingsForm();
+      renderMidiStatus();
+      render();
+    })
+    .catch((err) => {
+      midiStatus = `MIDI does not start: ${err.message}`;
+      renderMidiStatus();
+    });
+};
+
+const applyMidiSettings = () => {
+  if (settings.midiEnabled) connectMidi();
+  if (hub) hub.setInput(settings.midiInput);
+  renderMidiStatus();
 };
 
 const renderStats = () => {
@@ -966,6 +1207,13 @@ const fillSelect = (el, options, value) => {
   el.value = String(value);
 };
 
+// A stored port that is not connected now stays in the list, so the setting survives.
+const portOptions = (ports, stored, first) => {
+  const options = [first, ...ports.map((p) => [p.id, p.name])];
+  if (!options.some(([id]) => id === stored)) options.push([stored, 'Not connected']);
+  return options;
+};
+
 // The range lists offer only low < high, so the form cannot make a bad range.
 const fillSettingsForm = () => {
   const s = settings;
@@ -981,6 +1229,15 @@ const fillSettingsForm = () => {
   $('set-names').value = s.nameStyle;
   $('set-wrong').value = String(s.playTargetOnWrong);
   $('set-voice').value = s.voice;
+  $('set-midi').value = String(s.midiEnabled);
+  $('set-midi-silent').value = String(s.midiSilentGuess);
+  $('set-midi-light').value = String(s.midiLight);
+  fillSelect($('set-midi-input'),
+    portOptions(hub ? hub.inputs() : [], s.midiInput, [MIDI_ALL_INPUTS, 'All inputs']), s.midiInput);
+  fillSelect($('set-midi-output'),
+    portOptions(hub ? hub.outputs() : [], s.midiOutput, [MIDI_NO_OUTPUT, 'None']), s.midiOutput);
+  fillSelect($('set-midi-channel'),
+    Array.from({ length: 16 }, (_, i) => [i + 1, `Channel ${i + 1}`]), s.midiLightChannel);
 };
 
 const readSettingsForm = () => ({
@@ -992,12 +1249,19 @@ const readSettingsForm = () => ({
   playTargetOnWrong: $('set-wrong').value === 'true',
   referenceNote: $('set-reference').value === 'off' ? null : Number($('set-reference').value),
   voice: $('set-voice').value,
+  midiEnabled: $('set-midi').value === 'true',
+  midiInput: $('set-midi-input').value,
+  midiSilentGuess: $('set-midi-silent').value === 'true',
+  midiLight: $('set-midi-light').value === 'true',
+  midiOutput: $('set-midi-output').value,
+  midiLightChannel: Number($('set-midi-channel').value),
 });
 
 const applySettings = (raw) => {
   settings = normalizeSettings(raw);
   saveJSON(SETTINGS_KEY, settings);
   setVoice(settings.voice);
+  applyMidiSettings();
   game = configure(game, gameConfig(settings));
   buildKeyboard();
   fillSettingsForm();
@@ -1056,6 +1320,11 @@ const setupGame = () => {
   setupSettings();
   setupResetStats();
   renderStats();
+  applyMidiSettings();
+  // Turn off a lit key when the page closes.
+  window.addEventListener('pagehide', () => {
+    if (hub) hub.clearLight();
+  });
   render();
 };
 
@@ -1116,7 +1385,53 @@ const setupDebug = () => {
   });
 };
 
+// ---- MIDI debug section ----
+
+const hex = (bytes) => [...bytes].map((b) => b.toString(16).padStart(2, '0')).join(' ');
+
+const describeMidi = (msg) => {
+  const name = (n) => noteName(n, { style: 'international', showOctave: true });
+  if (msg.type === 'noteon') return `ch ${msg.channel} note-on ${msg.note} (${name(msg.note)}) vel ${msg.velocity}`;
+  if (msg.type === 'noteoff') return `ch ${msg.channel} note-off ${msg.note} (${name(msg.note)})`;
+  return msg.channel ? `ch ${msg.channel} other` : 'system';
+};
+
+// Each test is [label, bytes for the light channel]. C4 = MIDI 60 (Yamaha "C3").
+const DEBUG_MIDI_SENDS = [
+  ['Light C4, vel 1', (ch) => [noteOnBytes(60, ch, 1)]],
+  ['Light C4, vel 64', (ch) => [noteOnBytes(60, ch, 64)]],
+  ['C4 off', (ch) => [noteOffBytes(60, ch)]],
+  ['Volume 0 (CC 7)', (ch) => [controlChangeBytes(7, 0, ch)]],
+  ['Volume 100 (CC 7)', (ch) => [controlChangeBytes(7, 100, ch)]],
+  ['All notes off (CC 123)', (ch) => [controlChangeBytes(123, 0, ch)]],
+];
+
+const setupMidiDebug = () => {
+  const log = $('debug-midi-log');
+  const lines = [];
+  const state = $('debug-midi-state');
+  hubHooks.push((h) => h.onMessage((msg, portId, data) => {
+    const port = h.inputs().find((p) => p.id === portId);
+    lines.unshift(`${port ? port.name : portId}: ${hex(data)}  ${describeMidi(msg)}`);
+    lines.length = Math.min(lines.length, MIDI_LOG_ROWS);
+    log.textContent = lines.join('\n');
+  }));
+  const row = $('debug-midi');
+  DEBUG_MIDI_SENDS.forEach(([text, make]) => {
+    row.append(debugButton(text, () => {
+      const ch = settings.midiLightChannel;
+      if (!hub) {
+        state.textContent = 'Turn MIDI on in Settings first.';
+        return;
+      }
+      const ok = make(ch).every((bytes) => hub.send(settings.midiOutput, bytes));
+      state.textContent = ok ? `sent on ch ${ch}` : 'Select a MIDI output in Settings first.';
+    }));
+  });
+};
+
 setupGame();
+if (new URLSearchParams(location.search).has('debug')) setupMidiDebug();
 setupDebug();
 
 })();

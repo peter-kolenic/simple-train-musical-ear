@@ -30,7 +30,7 @@ Each phase ends with an **Acceptance** list. Claude Code checks the automatable 
 | 3 — Audio engine | **Done.** 63 tests pass (19 new in `audio.test.js`). Measured in Chrome with `OfflineAudioContext`: A4 = 440 Hz, 5 ms attack, no hard clip with 15 notes. The by-ear check is still open. |
 | 4 — Playable UI | **Done.** 65 tests pass. Checked in Chrome on macOS: Start gate, mouse and keyboard guesses, explore, replays, Next, highlights, score. No console errors. The by-ear check is still open. |
 | 5 — Settings, stats, polish, delivery | **Done.** 76 tests pass. Build output is 38.8 KB, with no external URLs. Checked in Chrome on macOS: all settings, persistence after reload, broken stored data, stats, two-click reset, reference tone, no horizontal scroll. Not checked: Edge or Chrome on Windows, `file://` storage. |
-| 6 — MIDI (optional) | **Next.** Not started. Needs the EZ-310. |
+| 6 — MIDI (optional) | **Done in code.** 87 tests pass (11 new in `midi.test.js`). Build output is 51.9 KB. Checked in Chrome on macOS with a fake MIDI device: guess, explore, light on after a wrong answer, light off at Next, ch 10 ignored, persistence. Not checked: the EZ-310, `file://` on Windows, the key light. |
 
 ### Decisions made during implementation
 - **Build:** `build.mjs` removes `import` lines and `export` keywords. It concatenates the modules in the order of its `MODULES` list inside one IIFE with `'use strict'`. The script replaces the `<!--SCRIPT-->` marker in `src/index.html`. The build fails if the bundle contains `</script`.
@@ -56,6 +56,11 @@ Each phase ends with an **Acceptance** list. Claude Code checks the automatable 
 - **Settings change:** applies at once, through `configure()`. If the current target is not in the new note set, a new target plays at once: `skip()` (new in `game.js`, no score) before the answer, `next()` after it (the score of the answered round stays). The range selects offer only low < high.
 - **Reset stats:** two clicks, because a browser dialog would block the page.
 - **Chromium 109:** the newest features in use are `??` (Chrome 80), `Object.fromEntries` (73), and flex `gap` (84). Tests can use newer features, because they run only in Node.
+- **`midi.js`:** `createMidiHub(access)` takes a `MIDIAccess`, so the tests use a fake one. The UI calls `startMidi()` (cached promise, not cached after an error). The hub sends each note-on (velocity > 0, not ch 10) from the selected input (or all) to `onNote`. `onMessage` gets all messages, for the debug log. It attaches the handler again on `onstatechange`.
+- **MIDI guess:** a MIDI note-on goes through `onPianoKey(m, {fromMidi: true})`, the same path as a click. `midiSilentGuess` (default on) drops the immediate `play` effect of that note (`dispatch(..., {mute})`). The delayed target after a wrong answer still plays. MIDI does nothing in `IDLE`, because a MIDI message is not a user gesture for audio. Notes outside the on-screen range explore, but do not guess.
+- **MIDI light (experimental):** `render()` calls `syncMidiLight()`. A wrong answer holds a note-on (velocity `MIDI_LIGHT_VELOCITY` = 1) on `midiLightChannel` of `midiOutput`. Any change of state sends the note-off, and so does `pagehide`. An input note-on equal to the lit note within `MIDI_ECHO_MS` (150 ms) is ignored, in case the keyboard echoes it.
+- **EZ-310 facts** (from `../yamaha_ez-310/ez310_docs`, not verified): USB-MIDI is class compliant. Function 042/043 Light Part 1/2 (default ch 1/2) light keys for received MIDI. Function 041 Light Guide must be On. Function 044 Local Control Off mutes the keys. Yamaha calls MIDI 60 "C3".
+- **MIDI settings:** `midiEnabled` (default off; when on, the page connects at load), `midiInput` (`'all'`), `midiSilentGuess`, `midiLight`, `midiOutput` (`''` = none), `midiLightChannel` (1–16). A stored port that is not connected stays in the list as "Not connected".
 - **Node:** Node 26 (Active LTS) is managed by **mise** and pinned in `mise.toml`. Volta is unmaintained since 2025-11-14 and is no longer used. If `node` is not on `PATH` in a non-interactive shell, run `mise exec -- npm test`.
 
 ---

@@ -45,7 +45,7 @@
   button:disabled { cursor: default; opacity: 0.45; }
 
   #start-gate { text-align: center; padding: 48px 16px; }
-  #start-gate button {
+  #start-gate #start {
     font-size: 1.4rem; padding: 14px 40px; border-radius: 10px;
     border: 0; background: var(--accent); color: #fff;
   }
@@ -124,11 +124,11 @@
   }
   #debug pre { font: 0.8rem ui-monospace, Consolas, monospace; margin: 8px 0; min-height: 1.5em; white-space: pre-wrap; }
   details.panel h3 { font-size: 1rem; margin: 16px 0 0; }
-  .preset { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; margin: 8px 0; }
-  .preset button {
-    font-size: 1.15rem; padding: 12px 28px; border-radius: 10px;
-    background: var(--panel); border: 2px solid var(--accent);
-  }
+  /* The EZ-310 button: the rightmost button of the row, with extra space before it. */
+  .controls #midi-ez310 { margin-left: 24px; border: 2px solid var(--accent); min-width: 0; }
+  #start-row { align-items: center; }
+  #midi-preset-state { text-align: center; margin: 0; }
+  #midi-preset-state:empty { display: none; }
 </style>
 </head>
 <body>
@@ -137,20 +137,21 @@
     <h1>Ear Trainer</h1>
     <span id="score" class="muted"></span>
   </header>
-  <div class="preset">
-    <button type="button" id="midi-ez310">🎹 Set up for EZ-310</button>
-    <span id="midi-preset-state" class="muted">Connect the keyboard by USB, then click. This turns MIDI on, selects the keyboard, and lights the correct key after a wrong answer.</span>
-  </div>
+  <p id="midi-preset-state" class="muted"></p>
   <noscript><p>This app needs JavaScript.</p></noscript>
 
   <section id="start-gate">
     <p class="muted">Listen to a tone. Then find it on the keyboard.</p>
-    <button type="button" id="start">Start</button>
+    <div class="controls" id="start-row">
+      <button type="button" id="start">Start</button>
+      <button type="button" id="midi-ez310"
+        title="Connect the keyboard by USB, then click. This turns MIDI on, selects the keyboard, and lights the correct key after a wrong answer.">🎹 EZ-310</button>
+    </div>
   </section>
 
   <section id="game" hidden>
     <div id="banner" role="status" aria-live="polite"></div>
-    <div class="controls">
+    <div class="controls" id="game-row">
       <button type="button" id="play-target">▶ Play tone<kbd>Space</kbd></button>
       <button type="button" id="play-guess">▶ My guess<kbd>R</kbd></button>
       <button type="button" id="next" class="primary">Next →<kbd>Enter</kbd></button>
@@ -1024,8 +1025,16 @@ const bannerText = ({ phase, result }) => {
     : ['bad', `Incorrect — you chose ${label(result.guess)}, it was ${label(result.target)}`];
 };
 
+// One EZ-310 button: in the Start row before the game, in the game row after Start.
+const placeEz310Button = (phase) => {
+  const row = $(phase === IDLE ? 'start-row' : 'game-row');
+  const btn = $('midi-ez310');
+  if (btn.parentElement !== row) row.append(btn);
+};
+
 const render = () => {
   const { phase, result, session } = game;
+  placeEz310Button(phase);
   $('start-gate').hidden = phase !== IDLE;
   $('game').hidden = phase === IDLE;
   $('score').textContent = session.total

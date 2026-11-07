@@ -139,8 +139,16 @@ const bannerText = ({ phase, result }) => {
     : ['bad', `Incorrect — you chose ${label(result.guess)}, it was ${label(result.target)}`];
 };
 
+// One EZ-310 button: in the Start row before the game, in the game row after Start.
+const placeEz310Button = (phase) => {
+  const row = $(phase === IDLE ? 'start-row' : 'game-row');
+  const btn = $('midi-ez310');
+  if (btn.parentElement !== row) row.append(btn);
+};
+
 const render = () => {
   const { phase, result, session } = game;
+  placeEz310Button(phase);
   $('start-gate').hidden = phase !== IDLE;
   $('game').hidden = phase === IDLE;
   $('score').textContent = session.total

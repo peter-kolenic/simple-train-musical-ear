@@ -61,11 +61,11 @@ A key on the MIDI keyboard acts as a click on the screen keyboard. Before the an
 
 1. Connect the [USB TO HOST] port of the keyboard to the computer with a USB cable. MIDI needs no driver.
 2. Close all other programs that use MIDI. On Windows, only one program at a time can open a MIDI port.
-3. Open the app. Click **Set up for EZ-310** under the title.
+3. Open the app. Click **🎹 EZ-310**, to the right of Start (or of Next, during the game).
 4. If the browser asks for permission to use MIDI devices, allow it.
-5. Make sure that the text next to the button says "Done: Digital Keyboard on channel 1".
+5. Make sure that the text under the title says "Done: Digital Keyboard on channel 1".
 
-**Set up for EZ-310** sets all MIDI settings below to the values that work with the EZ-310. For another keyboard, set **MIDI** to **On** and set the other MIDI settings yourself.
+**🎹 EZ-310** sets all MIDI settings below to the values that work with the EZ-310. For another keyboard, set **MIDI** to **On** and set the other MIDI settings yourself.
 
 MIDI settings:
 
